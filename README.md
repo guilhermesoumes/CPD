@@ -4,12 +4,12 @@ Aplicativo desktop em Python para apoiar a conferencia de conteudo minimo em rel
 
 ## O que o sistema faz
 
-- Permite cadastrar dados do processo, rodovia, lote, fase, analista e arquivos de entrada.
+- Cadastra dados do processo, rodovia, lote, fase, analista e arquivos de entrada.
 - Seleciona diretamente um ou mais relatorios PDF para analise.
 - Executa verificacoes por disciplina a partir das pastas `checks/Estudos` e `checks/Projetos`.
 - Usa RAG para procurar evidencias nos documentos e responder perguntas de conteudo minimo.
 - Gera um RAC em PDF no diretorio de resultados, organizado por BR, lote e disciplina.
-- Opcionalmente usa o arquivo RAP `.xlsx` para incluir a situacao de disciplinas antecessoras.
+- Usa o arquivo RAP `.xlsx` de forma opcional para incluir a situacao de disciplinas antecessoras.
 
 ## Fluxo de uso
 
@@ -32,9 +32,7 @@ CPDv3/
 |-- README.md
 |-- CHANGELOG.md
 |-- figs/
-|   |-- icone.png
 |   |-- logo_dnit_scan.ico
-|   |-- logo_dnit_scan.jpeg
 |   `-- logo_dnit_scan_v2.jpeg
 |-- funcs/
 |   |-- common_functions.py
@@ -42,21 +40,22 @@ CPDv3/
 |   `-- rag_engine.py
 |-- checks/
 |   |-- Estudos/
-|   |   |-- Geologico.py
-|   |   |-- Geotecnico.py
-|   |   |-- Hidrologico.py
-|   |   |-- Tracado.py
-|   |   `-- Trafego.py
+|   |   |-- estudo_geologico.py
+|   |   |-- estudo_geotecnico.py
+|   |   |-- estudo_hidrologico.py
+|   |   |-- estudo_tracado.py
+|   |   `-- estudo_trafego.py
 |   |-- Projetos/
-|   |   |-- Contencao.py
-|   |   |-- Geometrico.py
-|   |   |-- Obras_complementares.py
-|   |   |-- Pavimentacao.py
-|   |   |-- Sinalizacao.py
-|   |   `-- Terraplanagem.py
+|   |   |-- projeto_contencao.py
+|   |   |-- projeto_geometrico.py
+|   |   |-- projeto_obras_complementares.py
+|   |   |-- projeto_pavimentacao.py
+|   |   |-- projeto_sinalizacao.py
+|   |   `-- projeto_terraplanagem.py
 |   `-- Templates/
-|       |-- Template_pdf_estudo.py
-|       |-- Template_pdf_projeto.py
+|       |-- pdf_report.py
+|       |-- relatorio_estudo.py
+|       |-- relatorio_projeto.py
 |       `-- fonts/
 `-- teste_com_IA/
     `-- Perguntas_IA.py
@@ -64,22 +63,25 @@ CPDv3/
 
 ## Componentes principais
 
-- `app.py`: interface CustomTkinter, validacao de campos, persistencia de configuracao e execucao dos scripts.
+- `app.py`: interface CustomTkinter, validacao de campos, persistencia de configuracao e execucao dinamica dos scripts.
 - `funcs/rag_engine.py`: extrai texto dos PDFs, remove linhas repetidas, cria embeddings no Chroma e consulta o LLM.
 - `funcs/check_runner.py`: executor comum das disciplinas. Le configuracoes, roda perguntas, calcula indicadores e chama o template de PDF.
-- `funcs/common_functions.py`: funcoes utilitarias de caminhos, configuracao, status e versionamento de saida.
-- `checks/*/*.py`: wrappers declarativos por disciplina. Cada arquivo define nome, codigo RAC, template e perguntas.
-- `checks/Templates/*.py`: templates ReportLab para relatorios de estudo e projeto.
+- `funcs/common_functions.py`: funcoes utilitarias de caminhos, configuracao, status, padronizacao de lote e versionamento de saida.
+- `checks/Estudos/*.py`: verificacoes de estudos preliminares, sempre no padrao `estudo_nome_da_disciplina.py`.
+- `checks/Projetos/*.py`: verificacoes de projetos, sempre no padrao `projeto_nome_da_disciplina.py`.
+- `checks/Templates/pdf_report.py`: template central do RAC em PDF.
+- `checks/Templates/relatorio_estudo.py` e `checks/Templates/relatorio_projeto.py`: wrappers pequenos que selecionam o tipo de relatorio.
 
-## Como adicionar uma nova verificacao
+## Padrao dos scripts de verificacao
 
-Crie um arquivo `.py` em `checks/Estudos` ou `checks/Projetos` seguindo o padrao:
+Cada verificacao deve expor uma constante `CHECK_CONFIG` e uma funcao `main()`. A interface carrega automaticamente arquivos `.py` das pastas de verificacao conforme a fase selecionada.
 
 ```python
 # -*- coding: utf-8 -*-
 from funcs.check_runner import CheckConfig, run_content_check
 
-CONFIG = CheckConfig(
+
+CHECK_CONFIG = CheckConfig(
     discipline_name="Nome da Disciplina",
     output_code="CODIGO",
     template_kind="projeto",  # ou "estudo"
@@ -90,11 +92,23 @@ CONFIG = CheckConfig(
 )
 
 
-def main():
-    run_content_check(CONFIG)
+def main() -> None:
+    run_content_check(CHECK_CONFIG)
 ```
 
-A interface carrega automaticamente arquivos `.py` dessas pastas conforme a fase selecionada.
+## Saida gerada
+
+Os relatorios sao gravados em:
+
+```text
+<diretorio-resultados>/<BR-UF>_LT<lote>/<disciplina>/RAC-<versao>-<ano>_BR-<BR-UF>_<codigo>_LT-<lote>.pdf
+```
+
+Exemplo:
+
+```text
+Export_RAC/345-DF_LT01/Geometria/RAC-001-2026_BR-345-DF_PGMT_LT-01.pdf
+```
 
 ## Instalacao
 
@@ -114,10 +128,9 @@ pyinstaller --onefile --noconsole app.py --add-data "checks;checks" --add-data "
 
 ## Observacoes tecnicas
 
-- O diretorio `vectorstores/` e temporario e foi incluido no `.gitignore`.
 - `config.json` guarda dados locais da ultima execucao e nao deve ser versionado; use `config.example.json` como referencia.
+- `vectorstores/` e temporario e foi incluido no `.gitignore`.
 - `__pycache__` e arquivos `.pyc` sao artefatos gerados e nao devem ser versionados.
+- Os unicos assets de `figs/` usados pela aplicacao sao `logo_dnit_scan.ico` e `logo_dnit_scan_v2.jpeg`.
 - O RAP e opcional para a analise de conteudo; quando informado, entra como apoio na etapa de disciplinas antecessoras.
-- A performance principal melhora porque o fluxo RAG fica centralizado e os scripts de disciplina deixam de recriar logica duplicada.
-
-
+- O fluxo de templates foi centralizado para evitar divergencia visual entre relatorios de estudo e projeto.

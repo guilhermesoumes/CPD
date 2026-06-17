@@ -2,7 +2,7 @@
 from funcs.check_runner import CheckConfig, run_content_check
 
 
-CONFIG = CheckConfig(
+CHECK_CONFIG = CheckConfig(
     discipline_name="Estudo de Traçado",
     output_code="ETRC",
     template_kind="estudo",
@@ -17,5 +17,5 @@ CONFIG = CheckConfig(
 )
 
 
-def main():
-    run_content_check(CONFIG)
+def main() -> None:
+    run_content_check(CHECK_CONFIG)

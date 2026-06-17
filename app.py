@@ -1,4 +1,4 @@
-import customtkinter as ctk
+﻿import customtkinter as ctk
 from PIL import Image, ImageTk
 from tkinter import filedialog, messagebox
 from pathlib import Path
@@ -23,12 +23,9 @@ COR_TEXTO = ("black", "white")
 # =========================================================
 # FUNÇÕES AUXILIARES
 # =========================================================
-def caminho_arquivo(relative_path): # retorna o caminho do arquivo
-
-    if hasattr(sys, "_MEIPASS"): # se a biblioteca sys identifica uma pasta temporária chamada _MEIPASS
-        return os.path.join(sys._MEIPASS, relative_path) # junta o caminho da pasta com o caminho do arquivo
-    return os.path.join(os.path.abspath("."), relative_path) # se não tem pasta temporária, usa pasta atual
-
+def caminho_arquivo(relative_path):
+    base_path = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+    return str(base_path / relative_path)
 CONFIG_FILE = caminho_arquivo("config.json")
 
 def salvar_json(chave, valor):
@@ -638,10 +635,10 @@ class MainApp(ctk.CTk):
             pasta = caminho_arquivo("checks/Projetos/")
 
         try:
-            scripts = [
+            scripts = sorted(
                 f for f in os.listdir(pasta)
-                if f.endswith(".py")
-            ]
+                if f.endswith(".py") and not f.startswith("_")
+            )
 
         except Exception as e:
             print(f"Erro ao carregar scripts: {e}")
@@ -891,3 +888,4 @@ if __name__ == "__main__":
 
     # Loop único
     app.mainloop()
+
