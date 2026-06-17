@@ -1,0 +1,9 @@
+﻿build/
+dist/
+.venv/
+.vscode/
+*.spec
+__pycache__/
+*.pyc
+vectorstores/
+config.json
