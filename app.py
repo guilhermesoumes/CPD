@@ -89,8 +89,8 @@ class SplashScreen(ctk.CTkToplevel):
         # =====================================================
 
         imagem = ctk.CTkImage(
-            light_image=Image.open(caminho_arquivo(r"figs\logo_dnit_scan_v2.jpeg")),
-            dark_image=Image.open(caminho_arquivo(r"figs\logo_dnit_scan_v2.jpeg")),
+            light_image=Image.open(caminho_arquivo(r"figs\logo_interface")),
+            dark_image=Image.open(caminho_arquivo(r"figs\logo_interface")),
             size=(500, 375)
         )
 
@@ -139,7 +139,7 @@ class MainApp(ctk.CTk):
 
         self.resizable(True, True)
 
-        self.iconbitmap(caminho_arquivo(r"figs\logo_dnit_scan.ico"))
+        self.iconbitmap(caminho_arquivo(r"figs\logo_icone.ico"))
 
         # =====================================================
         # RESET CONFIG

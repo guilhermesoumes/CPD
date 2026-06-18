@@ -32,8 +32,8 @@ CPDv3/
 |-- README.md
 |-- CHANGELOG.md
 |-- figs/
-|   |-- logo_dnit_scan.ico
-|   `-- logo_dnit_scan_v2.jpeg
+|   |-- logo_icone.ico
+|   `-- logo_interface
 |-- funcs/
 |   |-- common_functions.py
 |   |-- check_runner.py
@@ -131,6 +131,6 @@ pyinstaller --onefile --noconsole app.py --add-data "checks;checks" --add-data "
 - `config.json` guarda dados locais da ultima execucao e nao deve ser versionado; use `config.example.json` como referencia.
 - `vectorstores/` e temporario e foi incluido no `.gitignore`.
 - `__pycache__` e arquivos `.pyc` sao artefatos gerados e nao devem ser versionados.
-- Os unicos assets de `figs/` usados pela aplicacao sao `logo_dnit_scan.ico` e `logo_dnit_scan_v2.jpeg`.
+- Os unicos assets de `figs/` usados pela aplicacao sao `logo_icone.ico` e `logo_interface`.
 - O RAP e opcional para a analise de conteudo; quando informado, entra como apoio na etapa de disciplinas antecessoras.
 - O fluxo de templates foi centralizado para evitar divergencia visual entre relatorios de estudo e projeto.

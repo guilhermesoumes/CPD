@@ -20,6 +20,7 @@
 - Removidos `__pycache__` e arquivos `.pyc` gerados.
 - Rodada verificacao de sintaxe com `python -m py_compile` em todos os scripts Python.
 - Preparado commit inicial apos validacao.
+
 ## 2026-06-17 - Padronizacao de scripts e templates
 
 - Renomeados os scripts de `checks/Estudos` para o padrao `estudo_<disciplina>.py`.
@@ -29,5 +30,5 @@
 - Criados `checks/Templates/relatorio_estudo.py` e `checks/Templates/relatorio_projeto.py` como wrappers de tipo de relatorio.
 - Removidos os templates antigos `Template_pdf_estudo.py` e `Template_pdf_projeto.py`.
 - Corrigida a resolucao de caminhos para usar a raiz real do projeto, em vez do diretorio corrente do terminal.
-- Removidas as imagens nao utilizadas `figs/icone.png` e `figs/logo_dnit_scan.jpeg`.
+- Removidas as imagens nao utilizadas `figs/icone.png` e `figs/logo_icone.jpeg`.
 - Atualizados `README.md` e `requirements.txt` para refletir a estrutura atual.
