@@ -7,7 +7,10 @@ from pathlib import Path
 
 import pandas as pd
 
-import scripts.common_functions as common
+from xml.sax.saxutils import escape
+from reportlab.platypus import Paragraph
+
+import scripts.common_functions as cf
 from scripts.rag_engine import answer_questions
 
 
@@ -27,11 +30,11 @@ def _load_rap_summary(rap_path: str | None, disciplines: list[str] | None):
     table = pd.read_excel(rap_path, sheet_name="GERAL")
     table = table[table["DISCIPLINA"].isin(disciplines)]
     table = table[["DISCIPLINA", "CONDIÇÃO"]]
-    table["STATUS"] = table["CONDIÇÃO"].apply(common.classificar_status)
+    table["STATUS"] = table["CONDIÇÃO"].apply(cf.classificar_status)
 
     total = len(table)
     approved = list(table["CONDIÇÃO"]).count("Aprovado")
-    approved_with_notes = list(table["CONDIÇÃO"]).count("Aprovado com Ressalva")
+    approved_with_notes = list(table["CONDIÇÃO"]).count("Aprovado com ressalva")
     rejected = list(table["CONDIÇÃO"]).count("Reprovado")
     percent = round(100 * (approved + approved_with_notes) / total, 1) if total else 0
 
@@ -60,7 +63,7 @@ def _result_directory(check_config: CheckConfig, app_config: dict) -> Path:
 def _next_report_path(output_dir: Path, check_config: CheckConfig, app_config: dict) -> Path:
     road_code = app_config["rodovia"].replace("/", "-")
     lot_code = app_config["lote"]
-    output_name = common.prox_versao(
+    output_name = cf.prox_versao(
         str(output_dir),
         str(datetime.now().year),
         road_code,
@@ -85,29 +88,69 @@ def _generate_report(check_config: CheckConfig, **report_data) -> None:
 
     raise ValueError(f"Tipo de template inválido: {check_config.template_kind}")
 
-
 def run_content_check(check_config: CheckConfig) -> None:
-    config_file = common.resource_path("config.json")
-    app_config = common.load_config(config_file)
+    config_file = cf.resource_path("config.json")
+    app_config = cf.load_config(config_file)
 
     pdf_files = app_config.get("arquivos-para-analisar") or []
     if not pdf_files:
         raise ValueError("Nenhum PDF foi selecionado para análise.")
 
     output_dir = _result_directory(check_config, app_config)
-    common.ensure_output_dirs(str(output_dir))
-
+    cf.ensure_output_dirs(str(output_dir))
+    
     rap_table, rap_approved, rap_total, rap_with_notes, rap_rejected, rap_percent = _load_rap_summary(
         app_config.get("arquivo-rap"),
         check_config.predecessor_disciplines,
     )
 
+    def preparar_texto_reportlab(texto: str) -> str:
+        texto = re.sub(r"<br\s*/?>", "<br/>", texto, flags=re.I)
+
+        marcador = "__BR_TEMP__"
+        texto = texto.replace("<br/>", marcador)
+
+        texto = escape(texto)
+
+        texto = texto.replace(marcador, "<br/>")
+
+        return texto
+
+
+    def preparar_resposta_para_reportlab(answer: str) -> str:
+        blocos = re.findall(
+            r"\d+\.\s*(.*?)(?=\n\d+\.|$)",
+            answer,
+            flags=re.S
+        )
+
+        if len(blocos) >= 2:
+            texto = blocos[1]
+        else:
+            texto = answer
+
+        texto = texto.replace("'''", "")
+        texto = texto.strip()
+        texto = re.sub(r"\n{3,}", "\n\n", texto)
+        texto = texto.replace("\n", "<br/>")
+
+        return preparar_texto_reportlab(texto)
+
+
     for pdf_file in pdf_files:
         answers = answer_questions(pdf_file, check_config.questions)
+
         content_score = _content_score(answers)
+
+        treated_answers = [
+            preparar_resposta_para_reportlab(answer)
+            for answer in answers
+        ]
+
         score_values = [content_score]
         if rap_percent is not None:
             score_values.append(rap_percent)
+
         general_score = round(sum(score_values) / len(score_values), 1)
 
         _generate_report(
@@ -117,7 +160,7 @@ def run_content_check(check_config: CheckConfig) -> None:
             analyzed_report=Path(pdf_file).name,
             general_score=f"{general_score}%",
             questions=check_config.questions,
-            answers=answers,
+            answers=treated_answers,
             rap_table=rap_table,
             rap_approved=rap_approved,
             rap_total=rap_total,

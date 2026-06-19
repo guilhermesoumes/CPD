@@ -20,9 +20,9 @@ DEFAULT_CHAT_MODEL = "google/gemma-3n-e4b"
 
 
 PROMPT_TEMPLATE = """
-Voce e um especialista em analise de documentos tecnicos de engenharia.
+Você é um especialista em análise de documentos técnicos de engenharia.
 
-Use exclusivamente as informacoes presentes no contexto.
+Use exclusivamente as informações presentes no contexto.
 
 CONTEXTO:
 {contexto}
@@ -30,26 +30,26 @@ CONTEXTO:
 PERGUNTA:
 {pergunta}
 
-INSTRUCOES:
-- Nao invente informacoes.
-- Nao utilize conhecimento externo.
-- Se a informacao nao estiver claramente presente, responda que ela nao foi encontrada.
-- Considere equivalencias semanticas e terminologias tecnicas relacionadas.
+INSTRUÇÕES:
+- Não invente informações.
+- Não utilize conhecimento externo.
+- Se a informação não estiver claramente presente, responda que ela não foi encontrada.
+- Considere equivalências semânticas e terminologias tácnicas relacionadas.
 
 FORMATO DA RESPOSTA:
 
-1. Informacao encontrada?
-Responda apenas: SIM ou NAO
+1. Informação encontrada?
+Responda apenas: SIM ou NÃO
 
-2. Trechos comprobatorios:
-Apresente os trechos exatos e a pagina encontrados no documento no formato:
-- Trecho: (trecho), na pagina: (pagina)
+2. Trechos comprobatórios:
+Apresente os trechos exatos e a página encontrados no documento no formato:
+- Trecho: (trecho), na página: (pagina)
 
-3. Conclusao:
+3. Conclusão:
 Responda apenas:
 SIM
 ou
-NAO
+NÃO
 """
 
 
@@ -131,7 +131,7 @@ def build_retriever(pdf_path: str | Path, persist_root: str | Path = "vectorstor
     )
 
 
-def answer_questions(pdf_path: str | Path, questions: list[str]) -> list[str]:
+def answer_questions(pdf_path: str | Path, perguntas: list[str]) -> list[str]:
     retriever = build_retriever(pdf_path)
     prompt = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
     llm = ChatOpenAI(
@@ -143,12 +143,12 @@ def answer_questions(pdf_path: str | Path, questions: list[str]) -> list[str]:
     chain = prompt | llm | StrOutputParser()
 
     answers: list[str] = []
-    for question in questions:
-        results = retriever.invoke(question)
-        context = "\n\n".join(
-            f"Pagina: {doc.metadata.get('page')}; Conteudo: {doc.page_content}"
+    for pergunta in perguntas:
+        results = retriever.invoke(pergunta)
+        contexto = "\n\n".join(
+            f"Pagina: {doc.metadata.get('page')}; Conteúdo: {doc.page_content}"
             for doc in results
         )
-        answers.append(chain.invoke({"contexto": context, "pergunta": question}))
+        answers.append(chain.invoke({"contexto": contexto, "pergunta": pergunta}))
 
     return answers

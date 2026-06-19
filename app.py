@@ -7,7 +7,7 @@ import json
 import threading
 import importlib.util
 import re
-import scripts.common_functions as fc
+import scripts.common_functions as cf
 import traceback
 
 # =========================================================
@@ -748,9 +748,11 @@ class MainApp(ctk.CTk):
             "modalidade-de-contratacao":  self.nm_modalidade_de_contratacao.get(),
             "rodovia":  self.nm_rodovia.get(),
             "extensao":  self.nm_extensao.get(),
-            "lote": fc.padronizar_lote( self.nm_lote.get()),
-            "tipo-de-projeto": fc.padronizar_lote( self.nm_tipo_projeto.get()),
-            "fase-de-projeto": fc.padronizar_lote( self.nm_fase.get()),
+            "lote": cf.padronizar_lote( self.nm_lote.get()),
+            "tipo-de-projeto": (
+                "" if self.nm_tipo_projeto.get() == "Tipo..."
+                else cf.padronizar_lote(self.nm_tipo_projeto.get())),
+            "fase-de-projeto": cf.padronizar_lote( self.nm_fase.get()),
             "numero-analise": self.nm_versao_analise.get(),
             "numero-ult-relatorio": self.nm_numero_ult_rel.get(),
             "analista": self.nm_analista.get()
