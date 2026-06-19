@@ -6,7 +6,7 @@ Aplicativo desktop em Python para apoiar a conferencia de conteudo minimo em rel
 
 - Cadastra dados do processo, rodovia, lote, fase, analista e arquivos de entrada.
 - Seleciona diretamente um ou mais relatorios PDF para analise.
-- Executa verificacoes por disciplina a partir das pastas `checks/Estudos` e `checks/Projetos`.
+- Executa verificacoes por disciplina a partir das pastas `checks/estudos` e `checks/projetos`.
 - Usa RAG para procurar evidencias nos documentos e responder perguntas de conteudo minimo.
 - Gera um RAC em PDF no diretorio de resultados, organizado por BR, lote e disciplina.
 - Usa o arquivo RAP `.xlsx` de forma opcional para incluir a situacao de disciplinas antecessoras.
@@ -39,26 +39,26 @@ CPDv3/
 |   |-- check_runner.py
 |   `-- rag_engine.py
 |-- checks/
-|   |-- Estudos/
+|   |-- estudos/
 |   |   |-- estudo_geologico.py
 |   |   |-- estudo_geotecnico.py
 |   |   |-- estudo_hidrologico.py
 |   |   |-- estudo_tracado.py
 |   |   `-- estudo_trafego.py
-|   |-- Projetos/
+|   |-- projetos/
 |   |   |-- projeto_contencao.py
 |   |   |-- projeto_geometrico.py
 |   |   |-- projeto_obras_complementares.py
 |   |   |-- projeto_pavimentacao.py
 |   |   |-- projeto_sinalizacao.py
 |   |   `-- projeto_terraplanagem.py
-|   `-- Templates/
+|   `-- templates/
 |       |-- pdf_report.py
 |       |-- relatorio_estudo.py
 |       |-- relatorio_projeto.py
 |       `-- fonts/
-`-- teste_com_IA/
-    `-- Perguntas_IA.py
+`-- scripts/
+    `-- perguntas_ia.py
 ```
 
 ## Componentes principais
@@ -67,10 +67,10 @@ CPDv3/
 - `funcs/rag_engine.py`: extrai texto dos PDFs, remove linhas repetidas, cria embeddings no Chroma e consulta o LLM.
 - `funcs/check_runner.py`: executor comum das disciplinas. Le configuracoes, roda perguntas, calcula indicadores e chama o template de PDF.
 - `funcs/common_functions.py`: funcoes utilitarias de caminhos, configuracao, status, padronizacao de lote e versionamento de saida.
-- `checks/Estudos/*.py`: verificacoes de estudos preliminares, sempre no padrao `estudo_nome_da_disciplina.py`.
-- `checks/Projetos/*.py`: verificacoes de projetos, sempre no padrao `projeto_nome_da_disciplina.py`.
-- `checks/Templates/pdf_report.py`: template central do RAC em PDF.
-- `checks/Templates/relatorio_estudo.py` e `checks/Templates/relatorio_projeto.py`: wrappers pequenos que selecionam o tipo de relatorio.
+- `checks/estudos/*.py`: verificacoes de estudos preliminares, sempre no padrao `estudo_nome_da_disciplina.py`.
+- `checks/projetos/*.py`: verificacoes de projetos, sempre no padrao `projeto_nome_da_disciplina.py`.
+- `checks/templates/pdf_report.py`: template central do RAC em PDF.
+- `checks/templates/relatorio_estudo.py` e `checks/templates/relatorio_projeto.py`: wrappers pequenos que selecionam o tipo de relatorio.
 
 ## Padrao dos scripts de verificacao
 
@@ -78,7 +78,7 @@ Cada verificacao deve expor uma constante `CHECK_CONFIG` e uma funcao `main()`. 
 
 ```python
 # -*- coding: utf-8 -*-
-from funcs.check_runner import CheckConfig, run_content_check
+from scripts.check_runner import CheckConfig, run_content_check
 
 
 CHECK_CONFIG = CheckConfig(

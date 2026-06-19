@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pandas as pd
 
-import funcs.common_functions as common
-from funcs.rag_engine import answer_questions
+import scripts.common_functions as common
+from scripts.rag_engine import answer_questions
 
 
 @dataclass(frozen=True)
@@ -72,13 +72,13 @@ def _next_report_path(output_dir: Path, check_config: CheckConfig, app_config: d
 
 def _generate_report(check_config: CheckConfig, **report_data) -> None:
     if check_config.template_kind == "estudo":
-        from checks.Templates.relatorio_estudo import generate_study_report
+        from checks.templates.relatorio_estudo import generate_study_report
 
         generate_study_report(**report_data)
         return
 
     if check_config.template_kind == "projeto":
-        from checks.Templates.relatorio_projeto import generate_project_report
+        from checks.templates.relatorio_projeto import generate_project_report
 
         generate_project_report(**report_data)
         return

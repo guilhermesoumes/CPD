@@ -1,6 +1,6 @@
 ﻿from __future__ import annotations
 
-from checks.Templates.pdf_report import generate_pdf_report
+from checks.templates.pdf_report import generate_pdf_report
 
 
 def generate_project_report(**kwargs) -> None:

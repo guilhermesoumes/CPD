@@ -13,7 +13,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-import funcs.common_functions as fc
+import scripts.common_functions as fc
 
 PROJECT_ROOT = Path(fc.resource_path("."))
 CONFIG_FILE = PROJECT_ROOT / "config.json"

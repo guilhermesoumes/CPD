@@ -1,5 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-from funcs.rag_engine import answer_questions
+from scripts.rag_engine import answer_questions
 
 
 def perguntas_IA(arquivo, lista_perguntas):

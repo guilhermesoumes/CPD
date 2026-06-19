@@ -2,13 +2,12 @@
 from PIL import Image, ImageTk
 from tkinter import filedialog, messagebox
 from pathlib import Path
-import os
 import sys
 import json
 import threading
 import importlib.util
 import re
-import funcs.common_functions as fc
+import scripts.common_functions as fc
 import traceback
 
 # =========================================================
@@ -25,20 +24,20 @@ COR_TEXTO = ("black", "white")
 # =========================================================
 def caminho_arquivo(relative_path):
     base_path = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
-    return str(base_path / relative_path)
+    return base_path / relative_path
+
 CONFIG_FILE = caminho_arquivo("config.json")
 
 def salvar_json(chave, valor):
-    
-    if Path(CONFIG_FILE).exists(): # garante a existência do arquivo de dados de configuração
+    if Path(CONFIG_FILE).exists():
         with open(CONFIG_FILE, "r", encoding="utf-8") as f:
             dados = json.load(f)
     else:
         dados = {}
 
-    dados[chave] = valor # atribui o dado ao dicionário
+    dados[chave] = valor
 
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f: # salva no arquivo de configurações
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=4)
 
 
@@ -84,13 +83,16 @@ class SplashScreen(ctk.CTkToplevel):
         self.overrideredirect(True)
         self.configure(fg_color="#111111")
 
+
         # =====================================================
         # LOGO
         # =====================================================
 
+        caminho_logo = caminho_arquivo(Path("figs") / "logo_interface.jpeg")
+
         imagem = ctk.CTkImage(
-            light_image=Image.open(caminho_arquivo(r"figs\logo_interface")),
-            dark_image=Image.open(caminho_arquivo(r"figs\logo_interface")),
+            light_image=Image.open(caminho_arquivo(caminho_logo)),
+            dark_image=Image.open(caminho_arquivo(caminho_logo)),
             size=(500, 375)
         )
 
@@ -98,6 +100,7 @@ class SplashScreen(ctk.CTkToplevel):
         label_logo.pack()
 
         self.after(100, self.carregar)
+
 
     def carregar(self):
 
@@ -112,13 +115,12 @@ class SplashScreen(ctk.CTkToplevel):
         # from langchain_community.vectorstores import FAISS
         self.after(1000, self.finalizar)
 
+
     def finalizar(self):
 
         self.destroy()
         self.parent.deiconify()
     
-
-
 
 # =========================================================
 # APLICAÇÃO PRINCIPAL
@@ -132,22 +134,13 @@ class MainApp(ctk.CTk):
         super().__init__()
 
         self.tema_atual = "light"
-
         self.geometry("1000x600")
-
         self.title("CPD-DNIT")
-
         self.resizable(True, True)
 
-        self.iconbitmap(caminho_arquivo(r"figs\logo_icone.ico"))
+        caminho_icone = caminho_arquivo(Path("figs") / "logo_icone.ico")
+        self.iconbitmap(caminho_arquivo(caminho_icone))
 
-        # =====================================================
-        # RESET CONFIG
-        # =====================================================
-        '''
-        with open(CONFIG_FILE, "w") as f:
-            json.dump({}, f)
-        '''
         # =====================================================
         # INTERFACE
         # =====================================================
@@ -161,29 +154,13 @@ class MainApp(ctk.CTk):
         self.nm_processo.insert(0, dados.get("processo", ""))
         self.nm_edital.insert(0, dados.get("edital", ""))
         self.nm_contrato.insert(0, dados.get("contrato", ""))
-        self.nm_modalidade_de_contratacao.insert(
-            0,
-            dados.get("modalidade-de-contratacao", "")
-        )
-
+        self.nm_modalidade_de_contratacao.insert(0, dados.get("modalidade-de-contratacao", ""))
         self.nm_rodovia.insert(0, dados.get("rodovia", ""))
         self.nm_extensao.insert(0, dados.get("extensao", ""))
         self.nm_lote.insert(0, dados.get("lote", ""))
-
-        self.nm_versao_analise.insert(
-            0,
-            dados.get("numero-analise", "")
-        )
-
-        self.nm_numero_ult_rel.insert(
-            0,
-            dados.get("numero-ult-relatorio", "")
-        )
-
-        self.nm_analista.insert(
-            0,
-            dados.get("analista", "")
-        )
+        self.nm_versao_analise.insert(0, dados.get("numero-analise", ""))
+        self.nm_numero_ult_rel.insert(0, dados.get("numero-ult-relatorio", ""))
+        self.nm_analista.insert(0, dados.get("analista", ""))
 
         tipo_projeto = dados.get("tipo-de-projeto")
         if tipo_projeto:
@@ -195,19 +172,16 @@ class MainApp(ctk.CTk):
             self.carregar_scripts()
         
         arquivos = dados.get("arquivos-para-analisar")
-
         if arquivos:
             self.lbl_arquivos_analise.configure(
                 text="\n".join(Path(a).name for a in arquivos)
             )
 
         diretorio = dados.get("diretorio-resultados")
-
         if diretorio:
             self.lbl_dir_resultados.configure(text=diretorio)
 
         rap = dados.get("arquivo-rap")
-
         if rap:
             self.label_rap.configure(text=rap)
 
@@ -625,19 +599,17 @@ class MainApp(ctk.CTk):
     # =========================================================
 
     def carregar_scripts(self, fase=None):
-
         fase = self.nm_fase.get()
 
         if fase == "Estudos Preliminares":
-            pasta = caminho_arquivo("checks/Estudos/")
-
+            pasta = caminho_arquivo(Path("checks") / "estudos")
         else:
-            pasta = caminho_arquivo("checks/Projetos/")
+            pasta = caminho_arquivo(Path("checks") / "projetos")
 
         try:
             scripts = sorted(
-                f for f in os.listdir(pasta)
-                if f.endswith(".py") and not f.startswith("_")
+                f.name for f in pasta.iterdir()
+                if f.is_file() and f.name.endswith(".py") and not f.name.startswith("_")
             )
 
         except Exception as e:
@@ -676,12 +648,6 @@ class MainApp(ctk.CTk):
     # =========================================================
 
     def validar_campos(self):
-        erro = False
-
-        if not self.nm_processo.get().strip():
-            self.lbl_processo.configure(text_color="red")
-            erro = True
-
         erro = False
         if not self.nm_processo.get().strip():
             self.lbl_processo.configure(text_color="red")
@@ -741,7 +707,6 @@ class MainApp(ctk.CTk):
             return
 
         script = self.lista_verificacoes.get()
-        #print(script)
         if not script:
             self.label_error.configure(
                 text="Selecione um script",
@@ -765,15 +730,12 @@ class MainApp(ctk.CTk):
         fase = self.nm_fase.get()
 
         if fase == "Estudos Preliminares":
-            pasta = caminho_arquivo("checks/Estudos/")
+            pasta = caminho_arquivo(Path("checks") / "estudos")
 
         else:
-            pasta = caminho_arquivo("checks/Projetos/")
+            pasta = caminho_arquivo(Path("checks") / "projetos")
 
-        script_path = os.path.join(
-            pasta,
-            script
-        )
+        script_path = pasta / script
 
         # =====================================================
         # SALVAR
@@ -888,4 +850,3 @@ if __name__ == "__main__":
 
     # Loop único
     app.mainloop()
-

@@ -1,5 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-from funcs.check_runner import CheckConfig, run_content_check
+from scripts.check_runner import CheckConfig, run_content_check
 
 
 CHECK_CONFIG = CheckConfig(

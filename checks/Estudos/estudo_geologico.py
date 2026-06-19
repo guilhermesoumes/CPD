@@ -1,17 +1,16 @@
 ﻿# -*- coding: utf-8 -*-
-from funcs.check_runner import CheckConfig, run_content_check
+from scripts.check_runner import CheckConfig, run_content_check
 
 
 CHECK_CONFIG = CheckConfig(
     discipline_name="Estudo Geológico",
-    output_code="EGLG",
+    output_code="EGEO",
     template_kind="estudo",
     questions=[
-        "O documento apresenta mapa de localização ou situação da área estudada?",
-        "O documento possui Anotação de Responsabilidade Técnica (ART)?",
-        "O documento apresenta caracterização geológica da área de estudo?",
-        "O documento apresenta identificação de unidades geológicas ou litologias?",
-        "O documento apresenta conclusões ou recomendações geológicas para o projeto?",
+        "O documento apresenta a concepção do estudo realizado?",
+        "O documento apresenta mapeamento geológico?",
+        "O documento apresenta o plano de sondagem?",
+        "O documento possui Anotação de Responsabilidade Técnica (ART)?"
     ],
 )
 

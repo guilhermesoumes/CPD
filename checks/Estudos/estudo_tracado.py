@@ -1,5 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-from funcs.check_runner import CheckConfig, run_content_check
+from scripts.check_runner import CheckConfig, run_content_check
 
 
 CHECK_CONFIG = CheckConfig(
@@ -8,11 +8,13 @@ CHECK_CONFIG = CheckConfig(
     template_kind="estudo",
     predecessor_disciplines=["Estudo Geológico", "Estudo Topográfico", "Estudo de Tráfego"],
     questions=[
+        "O documento apresenta prancha com elementos geométricos?",
         "O documento apresenta informações sobre seção transversal tipo?",
-        "O documento apresenta um Mapa de Situação?",
-        "O documento possui Anotação de Responsabilidade Técnica (ART)?",
+        "O documento apresenta classificação da rodovia?",
         "O documento apresenta quadro de características técnicas e operacionais?",
-        "O projeto planimétrico, ou em planta, está na escala de 1:2000?",
+        "O documento apresenta cadastro de interferências?",
+        "O documento apresenta justificativa do traçado adotado?",
+        "O documento possui Anotação de Responsabilidade Técnica (ART)?"
     ],
 )
 

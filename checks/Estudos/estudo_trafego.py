@@ -1,5 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-from funcs.check_runner import CheckConfig, run_content_check
+from scripts.check_runner import CheckConfig, run_content_check
 
 
 CHECK_CONFIG = CheckConfig(
@@ -7,11 +7,11 @@ CHECK_CONFIG = CheckConfig(
     output_code="ETRF",
     template_kind="estudo",
     questions=[
-        "O documento apresenta mapa de localização ou situação do trecho estudado?",
-        "O documento possui Anotação de Responsabilidade Técnica (ART)?",
-        "O documento apresenta contagens volumétricas ou dados de tráfego utilizados?",
-        "O documento apresenta composição da frota ou classificação veicular?",
-        "O documento apresenta projeções de tráfego ou VMD para o horizonte de projeto?",
+        "O documento apresenta delimitação das zonas de tráfego?",
+        "O documento apresenta informações sobre coleta de dados existentes de tráfego?",
+        "O documento apresenta pesquisas complementares?",
+        "O documento apresenta determinação do tráfego atual e futuro?",
+        "O documento possui Anotação de Responsabilidade Técnica (ART)?"
     ],
 )
 
