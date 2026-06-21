@@ -1,12 +1,12 @@
-﻿# -*- coding: utf-8 -*-
-from scripts.check_runner import CheckConfig, run_content_check
+"""Verificação de conteúdo mínimo do estudo de tráfego."""
+from scripts.executor_verificacoes import ConfiguracaoVerificacao, executar_verificacao_conteudo
 
 
-CHECK_CONFIG = CheckConfig(
-    discipline_name="Estudo de Tráfego",
-    output_code="ETRF",
-    template_kind="estudo",
-    questions=[
+CONFIGURACAO_VERIFICACAO = ConfiguracaoVerificacao(
+    nome_disciplina="Estudo de Tráfego",
+    codigo_saida="ETRF",
+    tipo_modelo="estudo",
+    perguntas=[
         "O documento apresenta delimitação das zonas de tráfego?",
         "O documento apresenta informações sobre coleta de dados existentes de tráfego?",
         "O documento apresenta pesquisas complementares?",
@@ -16,5 +16,7 @@ CHECK_CONFIG = CheckConfig(
 )
 
 
-def main() -> None:
-    run_content_check(CHECK_CONFIG)
+def principal() -> None:
+    """Executa a verificação configurada para o estudo de tráfego."""
+
+    executar_verificacao_conteudo(CONFIGURACAO_VERIFICACAO)

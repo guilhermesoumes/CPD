@@ -1,12 +1,12 @@
-﻿# -*- coding: utf-8 -*-
-from scripts.check_runner import CheckConfig, run_content_check
+"""Verificação de conteúdo mínimo do estudo hidrológico."""
+from scripts.executor_verificacoes import ConfiguracaoVerificacao, executar_verificacao_conteudo
 
 
-CHECK_CONFIG = CheckConfig(
-    discipline_name="Estudo Hidrológico",
-    output_code="EHID",
-    template_kind="estudo",
-    questions=[
+CONFIGURACAO_VERIFICACAO = ConfiguracaoVerificacao(
+    nome_disciplina="Estudo Hidrológico",
+    codigo_saida="EHID",
+    tipo_modelo="estudo",
+    perguntas=[
         "O documento apresenta uma caracterização do local?",
         "O documento apresenta o levantamento das estações hidrometereológicas?",
         "O documento apresenta delimitações da bacias de projeto?",
@@ -19,5 +19,7 @@ CHECK_CONFIG = CheckConfig(
 )
 
 
-def main() -> None:
-    run_content_check(CHECK_CONFIG)
+def principal() -> None:
+    """Executa a verificação configurada para o estudo hidrológico."""
+
+    executar_verificacao_conteudo(CONFIGURACAO_VERIFICACAO)

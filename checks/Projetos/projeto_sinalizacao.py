@@ -1,13 +1,12 @@
-﻿# -*- coding: utf-8 -*-
-from scripts.check_runner import CheckConfig, run_content_check
+"""Verificação de conteúdo mínimo do projeto de sinalização."""
+from scripts.executor_verificacoes import ConfiguracaoVerificacao, executar_verificacao_conteudo
 
 
-CHECK_CONFIG = CheckConfig(
-    discipline_name="Sinalização",
-    output_code="PSIN",
-    template_kind="projeto",
-    predecessor_disciplines=["Estudo de Tráfego", "Projeto Geométrico", "Projeto de Pavimentação"],
-    questions=[
+CONFIGURACAO_VERIFICACAO = ConfiguracaoVerificacao(
+    nome_disciplina="Sinalização",
+    codigo_saida="PSIN",
+    tipo_modelo="projeto",
+    perguntas=[
         "O documento possui Anotação de Responsabilidade Técnica (ART)?",
         "O mapa de localização da obra foi apresentado?",
         "Foi apresentado o quadro resumo das composições e das quantidades de serviço?",
@@ -17,5 +16,7 @@ CHECK_CONFIG = CheckConfig(
 )
 
 
-def main() -> None:
-    run_content_check(CHECK_CONFIG)
+def principal() -> None:
+    """Executa a verificação configurada para o projeto de sinalização."""
+
+    executar_verificacao_conteudo(CONFIGURACAO_VERIFICACAO)

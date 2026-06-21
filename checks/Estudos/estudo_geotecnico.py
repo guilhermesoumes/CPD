@@ -1,12 +1,12 @@
-﻿# -*- coding: utf-8 -*-
-from scripts.check_runner import CheckConfig, run_content_check
+"""Verificação de conteúdo mínimo do estudo geotécnico."""
+from scripts.executor_verificacoes import ConfiguracaoVerificacao, executar_verificacao_conteudo
 
 
-CHECK_CONFIG = CheckConfig(
-    discipline_name="Estudo Geotécnico",
-    output_code="EGTC",
-    template_kind="estudo",
-    questions=[
+CONFIGURACAO_VERIFICACAO = ConfiguracaoVerificacao(
+    nome_disciplina="Estudo Geotécnico",
+    codigo_saida="EGTC",
+    tipo_modelo="estudo",
+    perguntas=[
         "O documento apresenta investigações geotécnicas e ensaios de laboratório?",
         "O documento apresenta croqui de ocorrência de materiais?",
         "O documento apresenta histórico do pavimento existente?",
@@ -17,5 +17,7 @@ CHECK_CONFIG = CheckConfig(
 )
 
 
-def main() -> None:
-    run_content_check(CHECK_CONFIG)
+def principal() -> None:
+    """Executa a verificação configurada para o estudo geotécnico."""
+
+    executar_verificacao_conteudo(CONFIGURACAO_VERIFICACAO)

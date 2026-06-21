@@ -1,13 +1,12 @@
-﻿# -*- coding: utf-8 -*-
-from scripts.check_runner import CheckConfig, run_content_check
+"""Verificação de conteúdo mínimo do projeto geométrico."""
+from scripts.executor_verificacoes import ConfiguracaoVerificacao, executar_verificacao_conteudo
 
 
-CHECK_CONFIG = CheckConfig(
-    discipline_name="Geometria",
-    output_code="PGMT",
-    template_kind="projeto",
-    predecessor_disciplines=["Estudo Topográfico", "Estudo de Tráfego", "Estudo de Traçado", "Estudo Geotécnico"],
-    questions=[
+CONFIGURACAO_VERIFICACAO = ConfiguracaoVerificacao(
+    nome_disciplina="Geometria",
+    codigo_saida="PGMT",
+    tipo_modelo="projeto",
+    perguntas=[
         "O documento apresenta informações sobre seção transversal tipo?",
         "O documento apresenta um Mapa de Situação?",
         "O documento possui Anotação de Responsabilidade Técnica (ART)?",
@@ -17,5 +16,7 @@ CHECK_CONFIG = CheckConfig(
 )
 
 
-def main() -> None:
-    run_content_check(CHECK_CONFIG)
+def principal() -> None:
+    """Executa a verificação configurada para o projeto geométrico."""
+
+    executar_verificacao_conteudo(CONFIGURACAO_VERIFICACAO)

@@ -1,13 +1,12 @@
-﻿# -*- coding: utf-8 -*-
-from scripts.check_runner import CheckConfig, run_content_check
+"""Verificação de conteúdo mínimo do estudo de traçado."""
+from scripts.executor_verificacoes import ConfiguracaoVerificacao, executar_verificacao_conteudo
 
 
-CHECK_CONFIG = CheckConfig(
-    discipline_name="Estudo de Traçado",
-    output_code="ETRC",
-    template_kind="estudo",
-    predecessor_disciplines=["Estudo Geológico", "Estudo Topográfico", "Estudo de Tráfego"],
-    questions=[
+CONFIGURACAO_VERIFICACAO = ConfiguracaoVerificacao(
+    nome_disciplina="Estudo de Traçado",
+    codigo_saida="ETRC",
+    tipo_modelo="estudo",
+    perguntas=[
         "O documento apresenta prancha com elementos geométricos?",
         "O documento apresenta informações sobre seção transversal tipo?",
         "O documento apresenta classificação da rodovia?",
@@ -19,5 +18,7 @@ CHECK_CONFIG = CheckConfig(
 )
 
 
-def main() -> None:
-    run_content_check(CHECK_CONFIG)
+def principal() -> None:
+    """Executa a verificação configurada para o estudo de traçado."""
+
+    executar_verificacao_conteudo(CONFIGURACAO_VERIFICACAO)

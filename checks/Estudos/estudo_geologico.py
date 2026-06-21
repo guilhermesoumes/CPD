@@ -1,12 +1,12 @@
-﻿# -*- coding: utf-8 -*-
-from scripts.check_runner import CheckConfig, run_content_check
+"""Verificação de conteúdo mínimo do estudo geológico."""
+from scripts.executor_verificacoes import ConfiguracaoVerificacao, executar_verificacao_conteudo
 
 
-CHECK_CONFIG = CheckConfig(
-    discipline_name="Estudo Geológico",
-    output_code="EGEO",
-    template_kind="estudo",
-    questions=[
+CONFIGURACAO_VERIFICACAO = ConfiguracaoVerificacao(
+    nome_disciplina="Estudo Geológico",
+    codigo_saida="EGEO",
+    tipo_modelo="estudo",
+    perguntas=[
         "O documento apresenta a concepção do estudo realizado?",
         "O documento apresenta mapeamento geológico?",
         "O documento apresenta o plano de sondagem?",
@@ -15,5 +15,7 @@ CHECK_CONFIG = CheckConfig(
 )
 
 
-def main() -> None:
-    run_content_check(CHECK_CONFIG)
+def principal() -> None:
+    """Executa a verificação configurada para o estudo geológico."""
+
+    executar_verificacao_conteudo(CONFIGURACAO_VERIFICACAO)

@@ -1,136 +1,144 @@
-﻿# CPD-DNIT - Avaliacao de Completude com IA
+# CPD-DNIT — Avaliação de Completude com IA
 
-Aplicativo desktop em Python para apoiar a conferencia de conteudo minimo em relatorios tecnicos de entregas rodoviarias em BIM. A ferramenta recebe PDFs, aplica perguntas por disciplina usando RAG com modelo local exposto pelo LM Studio e gera relatorios PDF de avaliacao de completude.
+Aplicação desktop em Python para apoiar a conferência de conteúdo mínimo em relatórios técnicos de obras rodoviárias. O sistema analisa PDFs por disciplina, recupera evidências com RAG, consulta modelos locais pelo LM Studio e gera o Relatório da Avaliação de Completude (RAC) em PDF.
 
-## O que o sistema faz
+## Funcionalidades
 
-- Cadastra dados do processo, rodovia, lote, fase, analista e arquivos de entrada.
-- Seleciona diretamente um ou mais relatorios PDF para analise.
-- Executa verificacoes por disciplina a partir das pastas `checks/estudos` e `checks/projetos`.
-- Usa RAG para procurar evidencias nos documentos e responder perguntas de conteudo minimo.
-- Gera um RAC em PDF no diretorio de resultados, organizado por BR, lote e disciplina.
-- Usa o arquivo RAP `.xlsx` de forma opcional para incluir a situacao de disciplinas antecessoras.
+- Cadastro dos dados do processo, contrato, rodovia, lote, fase e analista.
+- Seleção de um ou mais relatórios PDF por execução.
+- Verificações específicas para estudos e projetos.
+- Extração de texto, remoção de linhas repetidas e recuperação de contexto por MMR.
+- Consulta a modelos locais por uma API compatível com a API da OpenAI.
+- Geração automática do RAC, com controle incremental de versão.
 
-## Fluxo de uso
+## Requisitos
 
-1. Inicie o LM Studio e exponha uma API local compativel com OpenAI em `http://127.0.0.1:1234/v1`.
-2. Carregue no LM Studio:
-   - modelo de chat: `google/gemma-3n-e4b`;
-   - modelo de embedding: `text-embedding-qwen3-embedding-0.6b`.
-3. Execute o aplicativo com `python app.py`.
-4. Preencha os dados obrigatorios, selecione os PDFs e o diretorio de resultados.
-5. Selecione a fase e a verificacao desejada.
-6. Clique em `Executar`.
+- Python 3.11 ou superior.
+- LM Studio ou outro servidor compatível com a API da OpenAI.
+- Modelo de conversa `google/gemma-3n-e4b`.
+- Modelo de vetorização `text-embedding-qwen3-embedding-0.6b`.
 
-## Estrutura do projeto
+Por padrão, a aplicação acessa a API em `http://127.0.0.1:1234/v1`. Modelos e endereço podem ser alterados nas constantes de `scripts/mecanismo_rag.py`.
 
-```text
-CPDv3/
-|-- app.py
-|-- config.example.json
-|-- requirements.txt
-|-- README.md
-|-- CHANGELOG.md
-|-- figs/
-|   |-- logo_icone.ico
-|   `-- logo_interface
-|-- funcs/
-|   |-- common_functions.py
-|   |-- check_runner.py
-|   `-- rag_engine.py
-|-- checks/
-|   |-- estudos/
-|   |   |-- estudo_geologico.py
-|   |   |-- estudo_geotecnico.py
-|   |   |-- estudo_hidrologico.py
-|   |   |-- estudo_tracado.py
-|   |   `-- estudo_trafego.py
-|   |-- projetos/
-|   |   |-- projeto_contencao.py
-|   |   |-- projeto_geometrico.py
-|   |   |-- projeto_obras_complementares.py
-|   |   |-- projeto_pavimentacao.py
-|   |   |-- projeto_sinalizacao.py
-|   |   `-- projeto_terraplanagem.py
-|   `-- templates/
-|       |-- pdf_report.py
-|       |-- relatorio_estudo.py
-|       |-- relatorio_projeto.py
-|       `-- fonts/
-`-- scripts/
-    `-- perguntas_ia.py
+## Instalação
+
+No PowerShell, a partir da pasta do projeto:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
 ```
 
-## Componentes principais
+## Execução
 
-- `app.py`: interface CustomTkinter, validacao de campos, persistencia de configuracao e execucao dinamica dos scripts.
-- `funcs/rag_engine.py`: extrai texto dos PDFs, remove linhas repetidas, cria embeddings no Chroma e consulta o LLM.
-- `funcs/check_runner.py`: executor comum das disciplinas. Le configuracoes, roda perguntas, calcula indicadores e chama o template de PDF.
-- `funcs/common_functions.py`: funcoes utilitarias de caminhos, configuracao, status, padronizacao de lote e versionamento de saida.
-- `checks/estudos/*.py`: verificacoes de estudos preliminares, sempre no padrao `estudo_nome_da_disciplina.py`.
-- `checks/projetos/*.py`: verificacoes de projetos, sempre no padrao `projeto_nome_da_disciplina.py`.
-- `checks/templates/pdf_report.py`: template central do RAC em PDF.
-- `checks/templates/relatorio_estudo.py` e `checks/templates/relatorio_projeto.py`: wrappers pequenos que selecionam o tipo de relatorio.
+1. Inicie o servidor local e carregue os dois modelos.
+2. Ative o ambiente virtual.
+3. Execute `python app.py`.
+4. Preencha os campos obrigatórios.
+5. Selecione os PDFs e o diretório de resultados.
+6. Escolha a fase e a verificação e clique em **Executar**.
 
-## Padrao dos scripts de verificacao
+Os dados da última execução ficam em `config.json`. Esse arquivo é local e não deve ser versionado; `config.example.json` contém a estrutura de referência.
 
-Cada verificacao deve expor uma constante `CHECK_CONFIG` e uma funcao `main()`. A interface carrega automaticamente arquivos `.py` das pastas de verificacao conforme a fase selecionada.
+## Estrutura
+
+```text
+CPD3/
+├── app.py
+├── config.example.json
+├── requirements.txt
+├── README.md
+├── figs/
+│   ├── logo_icone.ico
+│   └── logo_interface.jpeg
+├── scripts/
+│   ├── executor_verificacoes.py
+│   ├── funcoes_comuns.py
+│   └── mecanismo_rag.py
+└── checks/
+    ├── Estudos/
+    │   ├── estudo_geologico.py
+    │   ├── estudo_geotecnico.py
+    │   ├── estudo_hidrologico.py
+    │   ├── estudo_tracado.py
+    │   └── estudo_trafego.py
+    ├── Projetos/
+    │   ├── projeto_contencao.py
+    │   ├── projeto_geometrico.py
+    │   ├── projeto_obras_complementares.py
+    │   ├── projeto_pavimentacao.py
+    │   ├── projeto_sinalizacao.py
+    │   └── projeto_terraplanagem.py
+    └── Templates/
+        ├── relatorio_pdf.py
+        └── fonts/
+```
+
+## Componentes
+
+- `app.py`: interface, persistência da configuração, validação e carregamento dinâmico.
+- `scripts/executor_verificacoes.py`: consulta o RAG, calcula indicadores e solicita o RAC.
+- `scripts/mecanismo_rag.py`: extrai o PDF, cria a base vetorial e consulta os modelos.
+- `scripts/funcoes_comuns.py`: caminhos, configuração, lote e versionamento.
+- `checks/Estudos` e `checks/Projetos`: perguntas e metadados de cada disciplina.
+- `checks/Templates/relatorio_pdf.py`: composição visual e geração do RAC.
+
+## Como adicionar uma verificação
+
+Crie um arquivo `.py` em `checks/Estudos` ou `checks/Projetos`:
 
 ```python
-# -*- coding: utf-8 -*-
-from scripts.check_runner import CheckConfig, run_content_check
+"""Verificação de conteúdo mínimo de uma disciplina."""
 
-
-CHECK_CONFIG = CheckConfig(
-    discipline_name="Nome da Disciplina",
-    output_code="CODIGO",
-    template_kind="projeto",  # ou "estudo"
-    predecessor_disciplines=["Disciplina Antecessora"],
-    questions=[
-        "Pergunta objetiva sobre conteudo minimo?",
-    ],
+from scripts.executor_verificacoes import (
+    ConfiguracaoVerificacao,
+    executar_verificacao_conteudo,
 )
 
 
-def main() -> None:
-    run_content_check(CHECK_CONFIG)
+CONFIGURACAO_VERIFICACAO = ConfiguracaoVerificacao(
+    nome_disciplina="Nome da disciplina",
+    codigo_saida="COD",
+    tipo_modelo="projeto",  # ou "estudo"
+    perguntas=["O documento apresenta o conteúdo esperado?"],
+)
+
+
+def principal() -> None:
+    """Executa a verificação da disciplina."""
+
+    executar_verificacao_conteudo(CONFIGURACAO_VERIFICACAO)
 ```
 
-## Saida gerada
+A interface lista automaticamente os arquivos da pasta correspondente à fase escolhida.
 
-Os relatorios sao gravados em:
+## Saída
 
 ```text
-<diretorio-resultados>/<BR-UF>_LT<lote>/<disciplina>/RAC-<versao>-<ano>_BR-<BR-UF>_<codigo>_LT-<lote>.pdf
+<diretório-resultados>/<BR-UF>_LT<lote>/<disciplina>/RAC-<versão>-<ano>_BR-<BR-UF>_<código>_LT-<lote>.pdf
 ```
 
 Exemplo:
 
 ```text
-Export_RAC/345-DF_LT01/Geometria/RAC-001-2026_BR-345-DF_PGMT_LT-01.pdf
+resultados/345-DF_LT01/Geometria/RAC-001-2026_BR-345-DF_PGMT_LT-01.pdf
 ```
 
-## Instalacao
+O diretório `vectorstores/` é recriado durante a indexação e contém somente dados temporários.
+
+## Empacotamento
 
 ```powershell
-cd C:\AmbienteDeTeste\CPDv3
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python app.py
+pyinstaller --onefile --noconsole app.py `
+  --add-data "checks;checks" `
+  --add-data "scripts;scripts" `
+  --add-data "figs;figs"
 ```
 
-## Empacotamento com PyInstaller
+## Observações
 
-```powershell
-pyinstaller --onefile --noconsole app.py --add-data "checks;checks" --add-data "config.json;." --add-data "funcs;funcs" --add-data "figs;figs"
-```
-
-## Observacoes tecnicas
-
-- `config.json` guarda dados locais da ultima execucao e nao deve ser versionado; use `config.example.json` como referencia.
-- `vectorstores/` e temporario e foi incluido no `.gitignore`.
-- `__pycache__` e arquivos `.pyc` sao artefatos gerados e nao devem ser versionados.
-- Os unicos assets de `figs/` usados pela aplicacao sao `logo_icone.ico` e `logo_interface`.
-- O RAP e opcional para a analise de conteudo; quando informado, entra como apoio na etapa de disciplinas antecessoras.
-- O fluxo de templates foi centralizado para evitar divergencia visual entre relatorios de estudo e projeto.
+- A IA é uma ferramenta de apoio; a decisão técnica final continua sendo humana.
+- Parâmetros exigidos por bibliotecas externas permanecem em inglês para preservar compatibilidade.
+- `config.json`, `vectorstores/`, `__pycache__/` e arquivos `.pyc` são artefatos locais.
