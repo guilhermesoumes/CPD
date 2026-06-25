@@ -9,7 +9,7 @@ from pathlib import Path
 
 from xml.sax.saxutils import escape
 
-import scripts.funcoes_comuns as cf
+import scripts.funcoes_comuns as fc
 from scripts.mecanismo_rag import responder_perguntas
 
 
@@ -21,22 +21,6 @@ class ConfiguracaoVerificacao:
     codigo_saida: str
     tipo_modelo: str
     perguntas: list[str]
-
-
-def _resposta_e_positiva(resposta: str) -> bool:
-    """Indica se a última conclusão objetiva da resposta foi positiva."""
-
-    correspondencias = re.findall(r"\b(SIM|NÃO|NAO)\b", resposta.upper())
-    return bool(correspondencias and correspondencias[-1] == "SIM")
-
-
-def _pontuacao_conteudo(respostas: list[str]) -> float:
-    """Calcula o percentual de respostas positivas da análise de conteúdo."""
-
-    if not respostas:
-        return 0
-    respostas_positivas = sum(1 for resposta in respostas if _resposta_e_positiva(resposta))
-    return round(100 * respostas_positivas / len(respostas), 1)
 
 
 def _diretorio_resultado(configuracao_verificacao: ConfiguracaoVerificacao, configuracao_aplicacao: dict) -> Path:
@@ -53,7 +37,7 @@ def _caminho_proximo_relatorio(diretorio_saida: Path, configuracao_verificacao: 
 
     codigo_rodovia = configuracao_aplicacao["rodovia"].replace("/", "-")
     codigo_lote = configuracao_aplicacao["lote"]
-    nome_saida = cf.proximo_nome_relatorio(
+    nome_saida = fc.proximo_nome_relatorio(
         str(diretorio_saida),
         str(datetime.now().year),
         codigo_rodovia,
@@ -81,15 +65,15 @@ def _gerar_relatorio(configuracao_verificacao: ConfiguracaoVerificacao, **dados_
 def executar_verificacao_conteudo(configuracao_verificacao: ConfiguracaoVerificacao) -> None:
     """Executa a análise dos PDFs configurados e grava um RAC para cada arquivo."""
 
-    arquivo_configuracao = cf.caminho_recurso("config.json")
-    configuracao_aplicacao = cf.carregar_configuracao(arquivo_configuracao)
+    arquivo_configuracao = fc.caminho_recurso("config.json")
+    configuracao_aplicacao = fc.carregar_configuracao(arquivo_configuracao)
 
     arquivos_pdf = configuracao_aplicacao.get("arquivos-para-analisar") or []
     if not arquivos_pdf:
         raise ValueError("Nenhum PDF foi selecionado para análise.")
 
     diretorio_saida = _diretorio_resultado(configuracao_verificacao, configuracao_aplicacao)
-    cf.garantir_diretorios_saida(str(diretorio_saida))
+    fc.garantir_diretorios_saida(str(diretorio_saida))
     
     def preparar_texto_reportlab(texto: str) -> str:
         """Escapa texto livre preservando as quebras aceitas pelo ReportLab."""
@@ -106,17 +90,13 @@ def executar_verificacao_conteudo(configuracao_verificacao: ConfiguracaoVerifica
         return texto
 
 
-    def preparar_resposta_para_reportlab(resposta: str) -> str:
+    def preparar_resposta_para_reportlab(resposta: str) -> str: # passa resposta a resposta da lista de repostas
         """Extrai e formata a parte descritiva de uma resposta do modelo."""
 
-        blocos = re.findall(
-            r"\d+\.\s*(.*?)(?=\n\d+\.|$)",
-            resposta,
-            flags=re.S
-        )
+        blocos = re.findall(r"\d+\.\s*(.*?)(?=\n\d+\.|$)", resposta, flags=re.S) # quebra a resposta em 3 partes: sim ou não, trecho e conclusão com sim ou não.
 
-        if len(blocos) >= 2:
-            texto = blocos[1]
+        if len(blocos) >= 2: # sempre maior que 2
+            texto = blocos[1] # bloco = trecho que comprova
         else:
             texto = resposta
 
@@ -125,25 +105,28 @@ def executar_verificacao_conteudo(configuracao_verificacao: ConfiguracaoVerifica
         texto = re.sub(r"\n{3,}", "\n\n", texto)
         texto = texto.replace("\n", "<br/>")
 
-        return preparar_texto_reportlab(texto)
+        # termina com texto do trecho tratado
+
+        return preparar_texto_reportlab(texto) # retorna um texto tratado com o trecho que comprova
 
 
     for arquivo_pdf in arquivos_pdf:
-        respostas = responder_perguntas(arquivo_pdf, configuracao_verificacao.perguntas)
+        respostas = responder_perguntas(arquivo_pdf, configuracao_verificacao.perguntas) # lista com respostas sobre o aquivo
+        #print("respostas:")
+        #print(respostas)
 
-        pontuacao_conteudo = _pontuacao_conteudo(respostas)
-
-        respostas_tratadas = [
+        respostas_tratadas = [ # lista apenas com o trecho que comprova de cada pergunta, ou seja, apenas com os itens 2 das perguntas
             preparar_resposta_para_reportlab(resposta)
             for resposta in respostas
         ]
-
+        #print("respostas_tratadas:")
+        #print(respostas_tratadas)
         _gerar_relatorio(
             configuracao_verificacao,
             caminho_pdf=str(_caminho_proximo_relatorio(diretorio_saida, configuracao_verificacao, configuracao_aplicacao)),
             nome_disciplina=configuracao_verificacao.nome_disciplina,
             relatorio_analisado=Path(arquivo_pdf).name,
-            pontuacao_geral=f"{pontuacao_conteudo}%",
+            pontuacao_geral="",
             perguntas=configuracao_verificacao.perguntas,
-            respostas=respostas_tratadas,
+            respostas=respostas, # respostas tratadas é a lista com os itens 2. de cada pergunta. É o que compõe a coluna 3.
         )

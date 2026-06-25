@@ -135,7 +135,7 @@ def construir_recuperador(caminho_pdf: str | Path, raiz_persistencia: str | Path
 
     return armazenamento_vetorial.as_retriever(
         search_type="mmr",
-        search_kwargs={"k": 8, "fetch_k": 24, "lambda_mult": 0.75},
+        search_kwargs={"k": 20, "fetch_k": 40, "lambda_mult": 0.9},
     )
 
 
@@ -155,10 +155,22 @@ def responder_perguntas(caminho_pdf: str | Path, perguntas: list[str]) -> list[s
     respostas: list[str] = []
     for pergunta in perguntas:
         resultados = recuperador.invoke(pergunta)
+
+        print('resultados da pergunta: ' + pergunta)
+        print()
+
         contexto = "\n\n".join(
             f"Pagina: {documento.metadata.get('page')}; Conteúdo: {documento.page_content}"
             for documento in resultados
         )
+        print('contexto: ')
+        print(contexto)
+        print()
+
         respostas.append(cadeia.invoke({"contexto": contexto, "pergunta": pergunta}))
+
+        print('resposta: ')
+        print(respostas)
+        print()
 
     return respostas

@@ -15,9 +15,9 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-import scripts.funcoes_comuns as cf
+import scripts.funcoes_comuns as fc
 
-RAIZ_PROJETO = Path(cf.caminho_recurso("."))
+RAIZ_PROJETO = Path(fc.caminho_recurso("."))
 ARQUIVO_CONFIGURACAO = RAIZ_PROJETO / "config.json"
 DIRETORIO_FONTES = Path(__file__).resolve().parent / "fonts"
 
@@ -37,7 +37,7 @@ def _registrar_fontes() -> tuple[str, str]:
 def _metadados_projeto() -> dict:
     """Carrega e organiza os metadados exibidos no relatório."""
 
-    dados = cf.carregar_configuracao(str(ARQUIVO_CONFIGURACAO))
+    dados = fc.carregar_configuracao(str(ARQUIVO_CONFIGURACAO))
     return {
         "Processo": dados.get("processo", ""),
         "Edital": dados.get("edital", ""),
@@ -98,12 +98,20 @@ def _tabela(linhas: list[list], larguras: list[float], cabecalho: bool = True) -
 def _linhas_perguntas(perguntas: list[str], respostas: list[str], estilos: dict) -> list[list]:
     """Combina perguntas, situação e evidências em linhas de relatório."""
 
-    linhas = [["Item verificado", "Status", "Evidências e resposta da IA"]]
-    for pergunta, resposta in zip(perguntas or [], respostas or []):
+    linhas = [["Pergunta", "Resposta", "Trecho que comprova"]]
+    
+    for pergunta, resposta in zip(perguntas or [], respostas or []): # passando o par (pergunta, trecho que comprova)
+        #print('pergunta, resposta:')
+        #print(pergunta, resposta)
+
+        lista_resposta = re.findall(r"\d+\s*.\s*(.*?)(?=\n\d+\s*.|$)", resposta, re.S)
+
+        col2 = "Sim" if 'sim' in lista_resposta[-1].lower() else "Não"
+
         linhas.append([
             Paragraph(escape(pergunta), estilos["cell"]),
-            _situacao_resposta(resposta),
-            Paragraph(_limpar_resposta(resposta), estilos["cell"]),
+            Paragraph(col2),
+            Paragraph(_limpar_resposta(lista_resposta[-2]), estilos["cell"]),
         ])
     return linhas
 
@@ -190,6 +198,10 @@ def gerar_relatorio_pdf(
         Spacer(1, 0.35 * cm),
     ]
 
+    # =========================================================
+    # TABELA 1
+    # =========================================================
+
     linhas_resumo = [
         ["Indicador", "Resultado"],
         ["Conformidade geral", pontuacao_geral or "-"],
@@ -198,12 +210,24 @@ def gerar_relatorio_pdf(
     conteudo_relatorio.append(_tabela(linhas_resumo, [8 * cm, 8 * cm]))
 
     conteudo_relatorio.append(Paragraph("Dados do projeto", estilos["Section"]))
+
+    # =========================================================
+    # TABELA 2
+    # =========================================================
     linhas_metadados = [["Campo", "Valor"]] + [[chave, Paragraph(escape(str(valor)), estilos["cell"])] for chave, valor in metadados.items()]
     conteudo_relatorio.append(_tabela(linhas_metadados, [6 * cm, 10 * cm]))
 
     conteudo_relatorio.append(PageBreak())
+
+    # =========================================================
+    # PÁGINA 2
+    # =========================================================
+
     conteudo_relatorio.append(Paragraph("Conteúdo mínimo verificado por IA", estilos["Section"]))
-    conteudo_relatorio.append(_tabela(_linhas_perguntas(perguntas or [], respostas or [], estilos), [5.2 * cm, 2.0 * cm, 9.0 * cm]))
+    # =========================================================
+    # TABELA 3
+    # =========================================================
+    conteudo_relatorio.append(_tabela(_linhas_perguntas(perguntas, respostas, estilos), [5.2 * cm, 2.0 * cm, 9.0 * cm]))
     conteudo_relatorio.append(Spacer(1, 0.4 * cm))
     conteudo_relatorio.append(Paragraph(
         "Observação: esta análise usa Inteligência Artificial como ferramenta de apoio. As conclusões finais e decisões técnicas permanecem sob responsabilidade humana.",

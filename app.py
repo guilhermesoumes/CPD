@@ -9,7 +9,7 @@ import json
 import threading
 import importlib.util
 import re
-import scripts.funcoes_comuns as cf
+import scripts.funcoes_comuns as fc
 import traceback
 
 # =========================================================
@@ -486,12 +486,6 @@ class AplicacaoPrincipal(ctk.CTk):
         self.lista_verificacoes.grid(row=0, column=0, sticky="w", pady=2)
 
         # =====================================================
-        # BOTÃO CARREGAR SCRIPTS
-        # =====================================================
-
-        #ctk.CTkButton(self.quadro_verificacoes, text="Atualizar Scripts", command=self.carregar_verificacoes).grid(row=0, column=1, sticky="w", padx=(10, 0), pady=2)
-
-        # =====================================================
         # MENSAGEM DE ERRO
         # =====================================================
 
@@ -729,17 +723,15 @@ class AplicacaoPrincipal(ctk.CTk):
             "modalidade-de-contratacao":  self.campo_modalidade_de_contratacao.get(),
             "rodovia":  self.campo_rodovia.get(),
             "extensao":  self.campo_extensao.get(),
-            "lote": cf.padronizar_lote( self.campo_lote.get()),
+            "lote": fc.padronizar_lote( self.campo_lote.get()),
             "tipo-de-projeto": (
                 "" if self.campo_tipo_projeto.get() == "Tipo..."
-                else cf.padronizar_lote(self.campo_tipo_projeto.get())),
-            "fase-de-projeto": cf.padronizar_lote( self.campo_fase.get()),
+                else fc.padronizar_lote(self.campo_tipo_projeto.get())),
+            "fase-de-projeto": fc.padronizar_lote( self.campo_fase.get()),
             "numero-analise": self.campo_versao_analise.get(),
             "numero-ult-relatorio": self.campo_numero_ult_rel.get(),
             "analista": self.campo_analista.get()
         })
-
-        #print(self.campo_processo.get())
 
         # =====================================================
         # UI
