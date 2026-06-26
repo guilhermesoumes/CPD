@@ -4,15 +4,15 @@ from __future__ import annotations
 
 import re
 import shutil
-from collections import Counter
+
 from pathlib import Path
 
-import pymupdf4llm as pmp
+
 from langchain_chroma import Chroma
-from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from scripts.extracao_texto_pdf import pdf_para_documentos
 
 # configuração do LM Studio
 URL_BASE_API_PADRAO = "http://127.0.0.1:1234/v1"
@@ -60,52 +60,6 @@ def _normalizar_nome_vectorstore(caminho: str | Path) -> str:
     nome = Path(caminho).stem
     nome = re.sub(r"[^a-zA-Z0-9_-]+", "_", nome).strip("_")
     return nome or "documento"
-
-# Alterar!!!!!!!!!
-def pdf_para_documentos(caminho_pdf: str | Path, limite_linhas_repetidas: int = 2) -> list[Document]:
-    """Extrai blocos úteis de um PDF, descartando cabeçalhos repetidos."""
-
-    paginas = pmp.to_markdown(
-        str(caminho_pdf),
-        header=False,
-        footer=False,
-        page_chunks=True,
-        show_progress=False,
-    )
-
-    todas_linhas: list[str] = []
-    for pagina in paginas:
-        todas_linhas.extend(linha.strip() for linha in pagina["text"].splitlines())
-
-    contador = Counter(linha for linha in todas_linhas if linha)
-    documentos: list[Document] = []
-
-    for pagina in paginas:
-        numero_pagina = pagina["metadata"]["page_number"]
-        linhas_filtradas = [
-            linha.strip()
-            for linha in pagina["text"].splitlines()
-            if linha.strip()
-            and contador[linha.strip()] <= limite_linhas_repetidas
-            and len(linha.strip()) > 3
-        ]
-
-        if not linhas_filtradas:
-            continue
-
-        texto_pagina = "\n".join(linhas_filtradas)
-        texto_pagina = re.sub(r"\n{3,}", "\n\n", texto_pagina)
-
-        for trecho in (trecho.strip() for trecho in texto_pagina.split("\n\n")):
-            if trecho:
-                documentos.append(
-                    Document(
-                        page_content=trecho,
-                        metadata={"page": numero_pagina},
-                    )
-                )
-
-    return documentos
 
 # recebe doc langchain, define caminho do vectorstore e define os parâmetros do recuperador
 def construir_recuperador(caminho_pdf: str | Path, raiz_persistencia: str | Path = "vectorstores"):
