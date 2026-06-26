@@ -1,7 +1,7 @@
 """Verificação de conteúdo mínimo do estudo de traçado."""
 from scripts.executor_verificacoes import ConfiguracaoVerificacao, executar_verificacao_conteudo
 
-
+# Dados da disciplina
 CONFIGURACAO_VERIFICACAO = ConfiguracaoVerificacao(
     nome_disciplina="Estudo de Traçado",
     codigo_saida="ETRC",
@@ -17,7 +17,7 @@ CONFIGURACAO_VERIFICACAO = ConfiguracaoVerificacao(
     ],
 )
 
-
+# Importação dos dados da disciplina no verificador
 def principal() -> None:
     """Executa a verificação configurada para o estudo de traçado."""
 

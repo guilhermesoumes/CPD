@@ -26,8 +26,8 @@
 - Renomeados os scripts de `checks/estudos` para o padrao `estudo_<disciplina>.py`.
 - Renomeados os scripts de `checks/projetos` para o padrao `projeto_<disciplina>.py`.
 - Padronizada a estrutura interna dos scripts com `CHECK_CONFIG` e `main() -> None`.
-- Criado `checks/templates/pdf_report.py` como template central dos RACs.
-- Criados `checks/templates/relatorio_estudo.py` e `checks/templates/relatorio_projeto.py` como wrappers de tipo de relatorio.
+- Criado `templates/pdf_report.py` como template central dos RACs.
+- Criados `templates/relatorio_estudo.py` e `templates/relatorio_projeto.py` como wrappers de tipo de relatorio.
 - Removidos os templates antigos `Template_pdf_estudo.py` e `Template_pdf_projeto.py`.
 - Corrigida a resolucao de caminhos para usar a raiz real do projeto, em vez do diretorio corrente do terminal.
 - Removidas as imagens nao utilizadas `figs/icone.png` e `figs/logo_icone.jpeg`.

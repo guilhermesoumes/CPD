@@ -14,13 +14,13 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
-
+# configuração do LM Studio
 URL_BASE_API_PADRAO = "http://127.0.0.1:1234/v1"
 CHAVE_API_PADRAO = "lm-studio"
 MODELO_VETORIZACAO_PADRAO = "text-embedding-qwen3-embedding-0.6b"
 MODELO_CONVERSA_PADRAO = "google/gemma-3n-e4b"
 
-
+# prompt
 INSTRUCOES_MODELO = """
 Você é um especialista em análise de documentos técnicos de engenharia.
 
@@ -55,14 +55,13 @@ NÃO
 """
 
 
-def _sanitizar_nome_colecao(caminho: str | Path) -> str:
-    """Produz um nome de coleção compatível com o armazenamento vetorial."""
-
+# normalizar o nome de coleção compatível com o armazenamento vetorial
+def _normalizar_nome_vectorstore(caminho: str | Path) -> str:
     nome = Path(caminho).stem
     nome = re.sub(r"[^a-zA-Z0-9_-]+", "_", nome).strip("_")
     return nome or "documento"
 
-
+# Alterar!!!!!!!!!
 def pdf_para_documentos(caminho_pdf: str | Path, limite_linhas_repetidas: int = 2) -> list[Document]:
     """Extrai blocos úteis de um PDF, descartando cabeçalhos repetidos."""
 
@@ -108,18 +107,19 @@ def pdf_para_documentos(caminho_pdf: str | Path, limite_linhas_repetidas: int = 
 
     return documentos
 
-
+# recebe doc langchain, define caminho do vectorstore e define os parâmetros do recuperador
 def construir_recuperador(caminho_pdf: str | Path, raiz_persistencia: str | Path = "vectorstores"):
-    """Indexa um PDF e devolve o recuperador MMR usado pela cadeia RAG."""
-
+    # recebe texto do pdf
     documentos = pdf_para_documentos(caminho_pdf)
     if not documentos:
         raise ValueError(f"Nenhum texto util foi extraido de {caminho_pdf}.")
 
-    diretorio_persistencia = Path(raiz_persistencia) / _sanitizar_nome_colecao(caminho_pdf)
+    # define caminho do vectorstore
+    diretorio_persistencia = Path(raiz_persistencia) / _normalizar_nome_vectorstore(caminho_pdf)
     shutil.rmtree(diretorio_persistencia, ignore_errors=True)
     diretorio_persistencia.mkdir(parents=True, exist_ok=True)
 
+    # cria os chunks
     vetores_representacao = OpenAIEmbeddings(
         model=MODELO_VETORIZACAO_PADRAO,
         openai_api_base=URL_BASE_API_PADRAO,
@@ -127,23 +127,26 @@ def construir_recuperador(caminho_pdf: str | Path, raiz_persistencia: str | Path
         check_embedding_ctx_length=False,
     )
 
+    # armazena os chunks no vectorstore
     armazenamento_vetorial = Chroma.from_documents(
         documents=documentos,
         embedding=vetores_representacao,
         persist_directory=str(diretorio_persistencia),
     )
 
+    # retorna vectorstore com parâmetros
     return armazenamento_vetorial.as_retriever(
         search_type="mmr",
         search_kwargs={"k": 20, "fetch_k": 40, "lambda_mult": 0.9},
     )
 
-
+# recebe embeddings, define modelo de LLM, cria estrutura para perguntas e ativa o LLM
 def responder_perguntas(caminho_pdf: str | Path, perguntas: list[str]) -> list[str]:
-    """Responde uma lista de perguntas usando somente o contexto do PDF."""
-
+    # recebe o banco de vetores e passa o prompt
     recuperador = construir_recuperador(caminho_pdf)
     instrucoes = ChatPromptTemplate.from_template(INSTRUCOES_MODELO)
+
+    # define modelo de LLM
     modelo_linguagem = ChatOpenAI(
         model=MODELO_CONVERSA_PADRAO,
         openai_api_base=URL_BASE_API_PADRAO,
@@ -152,25 +155,16 @@ def responder_perguntas(caminho_pdf: str | Path, perguntas: list[str]) -> list[s
     )
     cadeia = instrucoes | modelo_linguagem | StrOutputParser()
 
+    # faz as perguntas
     respostas: list[str] = []
     for pergunta in perguntas:
         resultados = recuperador.invoke(pergunta)
-
-        print('resultados da pergunta: ' + pergunta)
-        print()
 
         contexto = "\n\n".join(
             f"Pagina: {documento.metadata.get('page')}; Conteúdo: {documento.page_content}"
             for documento in resultados
         )
-        print('contexto: ')
-        print(contexto)
-        print()
 
         respostas.append(cadeia.invoke({"contexto": contexto, "pergunta": pergunta}))
-
-        print('resposta: ')
-        print(respostas)
-        print()
 
     return respostas

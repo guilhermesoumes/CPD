@@ -17,7 +17,7 @@ from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, 
 
 import scripts.funcoes_comuns as fc
 
-RAIZ_PROJETO = Path(fc.caminho_recurso("."))
+RAIZ_PROJETO = Path(fc.resolve_caminho("."))
 ARQUIVO_CONFIGURACAO = RAIZ_PROJETO / "config.json"
 DIRETORIO_FONTES = Path(__file__).resolve().parent / "fonts"
 

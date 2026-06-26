@@ -82,8 +82,8 @@ CPD3/
 - `scripts/executor_verificacoes.py`: consulta o RAG, calcula indicadores e solicita o RAC.
 - `scripts/mecanismo_rag.py`: extrai o PDF, cria a base vetorial e consulta os modelos.
 - `scripts/funcoes_comuns.py`: caminhos, configuração, lote e versionamento.
-- `checks/Estudos` e `checks/Projetos`: perguntas e metadados de cada disciplina.
-- `checks/Templates/relatorio_pdf.py`: composição visual e geração do RAC.
+- `checks/estudos` e `checks/projetos`: perguntas e metadados de cada disciplina.
+- `templates/relatorio_pdf.py`: composição visual e geração do RAC.
 
 ## Como adicionar uma verificação
 
