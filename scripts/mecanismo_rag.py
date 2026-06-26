@@ -21,7 +21,7 @@ MODELO_VETORIZACAO_PADRAO = "text-embedding-qwen3-embedding-0.6b"
 MODELO_CONVERSA_PADRAO = "google/gemma-3n-e4b"
 
 # prompt
-INSTRUCOES_MODELO = """
+PROMPT = """
 Você é um especialista em análise de documentos técnicos de engenharia.
 
 Use exclusivamente as informações presentes no contexto.
@@ -144,7 +144,7 @@ def construir_recuperador(caminho_pdf: str | Path, raiz_persistencia: str | Path
 def responder_perguntas(caminho_pdf: str | Path, perguntas: list[str]) -> list[str]:
     # recebe o banco de vetores e passa o prompt
     recuperador = construir_recuperador(caminho_pdf)
-    instrucoes = ChatPromptTemplate.from_template(INSTRUCOES_MODELO)
+    instrucoes = ChatPromptTemplate.from_template(PROMPT)
 
     # define modelo de LLM
     modelo_linguagem = ChatOpenAI(
