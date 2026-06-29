@@ -5,7 +5,7 @@ import mimetypes
 import time
 import re
 
-import pymupdf  # PyMuPDF
+import pymupdf
 import tempfile
 from pathlib import Path
 
@@ -51,10 +51,8 @@ Regras obrigatórias:
 """
 
 def extrair_com_modelo(caminho_imagem: Path, numero_pagina: int, model: str):
-
     print(f"Processando página {numero_pagina}: {caminho_imagem}")
-
-    inicio = time.perf_counter()
+    #inicio = time.perf_counter()
     resposta = client.chat.completions.create(
         model=model,
         messages=[
@@ -80,98 +78,86 @@ def extrair_com_modelo(caminho_imagem: Path, numero_pagina: int, model: str):
         ],
         temperature=0,
     )
-    fim = time.perf_counter()
-
-    tempo_total = fim - inicio
-
-    print(f"\nO modelo {model} demorou {tempo_total:.2f}s")
-
+    #fim = time.perf_counter()
+    #tempo_total = fim - inicio
+    #print(f"\nO modelo {model} demorou {tempo_total:.2f}s")
     conteudo = resposta.choices[0].message.content
-
-    print(conteudo)
-    print("-"*25)
-
+    #print(conteudo)
+    #print("-"*25)
     return conteudo
 
 def processar_pdf_com_imagens_temporarias(
     caminho_pdf: str,
     dpi: int = 200,
     formato: str = "png",
-    model:str = None,
+    model:str = MODELO_SCAN,
     ):
-
     pdf_path = Path(caminho_pdf)
-
     if not pdf_path.exists():
         raise FileNotFoundError(f"PDF não encontrado: {pdf_path}")
-
     resultados = []
-
     with tempfile.TemporaryDirectory() as temp_dir:
         pasta_temp = Path(temp_dir)
-
+        print(pasta_temp)
         doc = pymupdf.open(pdf_path)
-
         zoom = dpi / 72
         matriz = pymupdf.Matrix(zoom, zoom)
-
-
         for indice_pagina in range(len(doc)):
             numero_pagina = indice_pagina + 1
             pagina = doc[indice_pagina]
-
             pix = pagina.get_pixmap(
                 matrix=matriz,
                 alpha=False
             )
-
             caminho_imagem = pasta_temp / f"pagina_{numero_pagina:04d}.png"
             pix.save(caminho_imagem)
-
             resultado = extrair_com_modelo(
                 caminho_imagem=caminho_imagem,
                 numero_pagina=numero_pagina,
                 model=model
             )
-
             resultados.append({
                 "pagina": numero_pagina,
-                "imagem": str(caminho_imagem),
+                #"imagem": str(caminho_imagem),
                 "resultado": resultado
             })
-
         doc.close()
-
     return resultados
 
 
 # Extrai blocos úteis de um PDF, descartando cabeçalhos repetidos
 def pdf_para_documentos(caminho_pdf: str | Path) -> list[Document]:
 
+    lista_resultados = processar_pdf_com_imagens_temporarias(caminho_pdf=caminho_pdf)
+
     todas_linhas: list[str] = []
-    for pagina in paginas:
-        todas_linhas.extend(linha.strip() for linha in pagina["text"].splitlines())
+    
+    for pagina in lista_resultados:
+        todas_linhas.extend(linha.strip() for linha in pagina["resultado"].splitlines())
+    
 
     contador = Counter(linha for linha in todas_linhas if linha)
     documentos: list[Document] = []
 
-    for pagina in paginas:
-        numero_pagina = pagina["metadata"]["page_number"]
+    for pagina in lista_resultados:
+        numero_pagina = pagina["pagina"]
+
         linhas_filtradas = [
             linha.strip()
-            for linha in pagina["text"].splitlines()
+            for linha in pagina["resultado"].splitlines()
             if linha.strip()
-            and contador[linha.strip()] <= limite_linhas_repetidas
+            and contador[linha.strip()] <= 3
             and len(linha.strip()) > 3
         ]
 
         if not linhas_filtradas:
             continue
+        
 
         texto_pagina = "\n".join(linhas_filtradas)
         texto_pagina = re.sub(r"\n{3,}", "\n\n", texto_pagina)
 
-        for trecho in (trecho.strip() for trecho in texto_pagina.split("\n\n")):
+        for trecho in (trecho.strip() for trecho in texto_pagina.split("\n")):
             if trecho:
                 documentos.append(
                     Document(
@@ -180,8 +166,11 @@ def pdf_para_documentos(caminho_pdf: str | Path) -> list[Document]:
                     )
                 )
 
-    # ===============================================================
+    return documentos
 
+
+    # ===============================================================
+    '''
     inicio_modelo = time.perf_counter()
 
     resultados = processar_pdf_com_imagens_temporarias(
@@ -200,5 +189,5 @@ def pdf_para_documentos(caminho_pdf: str | Path) -> list[Document]:
     tempo_total_do_modelo = fim_modelo - inicio_modelo
 
     print(f"\n\n\n O tempo total para extrair o texto do documento foi de {tempo_total_do_modelo:.2f}s, que corresponde a {(tempo_total_do_modelo/60):.2f}min")
-
+    '''
 

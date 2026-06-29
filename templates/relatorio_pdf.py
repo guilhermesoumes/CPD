@@ -53,16 +53,6 @@ def _metadados_projeto() -> dict:
         "Analista": dados.get("analista", ""),
     }
 
-
-def _situacao_resposta(resposta: str) -> str:
-    """Obtém a última conclusão SIM ou NÃO presente na resposta."""
-
-    correspondencias = re.findall(r"\b(SIM|NÃO|NAO)\b", resposta.upper())
-    if not correspondencias:
-        return "-"
-    return "SIM" if correspondencias[-1] == "SIM" else "NÃO"
-
-
 def _limpar_resposta(resposta: str) -> str:
     """Remove marcação Markdown e prepara quebras de linha para o PDF."""
 
@@ -165,6 +155,7 @@ def gerar_relatorio_pdf(
     caminho_pdf: str,
     nome_disciplina: str,
     relatorio_analisado: str,
+    tempo_de_processamento: str,
     pontuacao_geral: str | None,
     perguntas: list[str] | None,
     respostas: list[str] | None,
@@ -195,6 +186,7 @@ def gerar_relatorio_pdf(
         Paragraph(f"{nome_disciplina}", estilos["TitleCenter"]),
         Paragraph(f"Relatório da Avaliação de Completude - {tipo_relatorio}", estilos["SubtitleCenter"]),
         Paragraph(escape(relatorio_analisado), estilos["SubtitleCenter"]),
+        Paragraph(escape(tempo_de_processamento), estilos["SubtitleCenter"]),
         Spacer(1, 0.35 * cm),
     ]
 

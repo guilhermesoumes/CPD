@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+import time
 
 from xml.sax.saxutils import escape
 
@@ -69,13 +70,19 @@ def executar_verificacao_conteudo(configuracao_verificacao: ConfiguracaoVerifica
     fc.garantir_diretorios_saida(str(diretorio_saida))
 
     for arquivo_pdf in arquivos_pdf:
+        inicio_modelo = time.perf_counter()
         respostas = responder_perguntas(arquivo_pdf, configuracao_verificacao.perguntas) # lista com respostas sobre o aquivo
+        fim_modelo = time.perf_counter()
 
+        tempo_total_do_modelo = fim_modelo - inicio_modelo
+
+        tempo_total_do_modelo = f"O tempo total para tratamento do documento foi de aproximadamente {(tempo_total_do_modelo/60):.2f}min"
         _gerar_relatorio(
             configuracao_verificacao,
             caminho_pdf=str(_caminho_proximo_relatorio(diretorio_saida, configuracao_verificacao, configuracao_aplicacao)),
             nome_disciplina=configuracao_verificacao.nome_disciplina,
             relatorio_analisado=Path(arquivo_pdf).name,
+            tempo_de_processamento = tempo_total_do_modelo,
             pontuacao_geral="",
             perguntas=configuracao_verificacao.perguntas,
             respostas=respostas, # respostas tratadas é a lista com os itens 2. de cada pergunta. É o que compõe a coluna 3.
