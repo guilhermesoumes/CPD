@@ -14,6 +14,7 @@ from reportlab.lib.units import cm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from datetime import datetime
 
 import scripts.funcoes_comuns as fc
 
@@ -84,24 +85,91 @@ def _tabela(linhas: list[list], larguras: list[float], cabecalho: bool = True) -
     tabela.setStyle(TableStyle(estilo))
     return tabela
 
+def _extrair_trechos_paginas(resposta: str):
+    # Primeiro separa o item 2, como você já fazia
+    lista_resposta = re.findall(
+        r"\d+\s*\.\s*(.*?)(?=\n\d+\s*\.|$)",
+        resposta,
+        flags=re.S
+    )
+
+    if len(lista_resposta) < 2:
+        return []
+
+    resposta_item_2 = lista_resposta[-2]
+
+    # Agora separa Trecho e Página
+    padrao = re.compile(
+        r"-\s*Trecho:\s*(?P<trecho>.*?)\s*,\s*na\s+página:\s*(?P<pagina>.*?)(?=\s*-\s*Trecho:|$)",
+        flags=re.S | re.I
+    )
+
+    resultados = []
+
+    for match in padrao.finditer(resposta_item_2):
+        trecho = match.group("trecho").strip()
+        pagina = match.group("pagina").strip()
+
+        # Evita adicionar item vazio
+        if trecho and pagina:
+            resultados.append({
+                "trecho": trecho,
+                "pagina": pagina
+            })
+
+    return resultados
+
+def _formatar_lista_paginas(paginas: list[str]) -> str:
+    """Formata páginas únicas em ordem crescente: 5, 11, 14, e 20."""
+
+    paginas_unicas = set()
+
+    for pagina in paginas:
+        pagina = str(pagina).strip()
+
+        if not pagina:
+            continue
+
+        # Caso venha algo como "5"
+        if pagina.isdigit():
+            paginas_unicas.add(int(pagina))
+
+    paginas_ordenadas = sorted(paginas_unicas)
+
+    if not paginas_ordenadas:
+        return "-"
+
+    paginas_formatadas = [str(pagina) for pagina in paginas_ordenadas]
+
+    if len(paginas_formatadas) == 1:
+        return paginas_formatadas[0]
+
+    if len(paginas_formatadas) == 2:
+        return f"{paginas_formatadas[0]} e {paginas_formatadas[1]}"
+
+    return f"{', '.join(paginas_formatadas[:-1])}, e {paginas_formatadas[-1]}"
 
 def _linhas_perguntas(perguntas: list[str], respostas: list[str], estilos: dict) -> list[list]:
-    """Combina perguntas, situação e evidências em linhas de relatório."""
 
-    linhas = [["Pergunta", "Resposta", "Trecho que comprova"]]
+    linhas = [["Pergunta", "Resposta", "Trecho que comprova", "Página"]]
     
     for pergunta, resposta in zip(perguntas or [], respostas or []): # passando o par (pergunta, trecho que comprova)
-        #print('pergunta, resposta:')
-        #print(pergunta, resposta)
 
-        lista_resposta = re.findall(r"\d+\s*.\s*(.*?)(?=\n\d+\s*.|$)", resposta, re.S)
+        itens_resposta = re.findall(r"\d+\s*.\s*(.*?)(?=\n\d+\s*.|$)", resposta, re.S)
 
-        col2 = "Sim" if 'sim' in lista_resposta[-1].lower() else "Não"
+        ultimo_item = itens_resposta[-1].lower() if itens_resposta else ""
+        existencia_informacao = "Sim" if "sim" in ultimo_item else "Não"
+
+        evidencias = _extrair_trechos_paginas(resposta or "")
+
+        trechos_txt = "\n".join(f"• {item['trecho']}" for item in evidencias)
+        paginas_txt = _formatar_lista_paginas([item["pagina"] for item in evidencias])
 
         linhas.append([
             Paragraph(escape(pergunta), estilos["cell"]),
-            Paragraph(col2),
-            Paragraph(_limpar_resposta(lista_resposta[-2]), estilos["cell"]),
+            Paragraph(existencia_informacao, estilos["cell"]),
+            Paragraph(escape(trechos_txt).replace("\n", "<br/>"), estilos["cell"]),
+            Paragraph(escape(paginas_txt).replace("\n", "<br/>"), estilos["cell"]),
         ])
     return linhas
 
@@ -151,6 +219,14 @@ def _fundo_pagina(tela_pdf, documento):
 
     tela_pdf.restoreState()
 
+def _get_formatted_datetime():
+    now = datetime.now()
+
+    # Formatting date and time
+    formatted_date = now.strftime("%d/%m/%Y %H:%M")
+
+    return formatted_date
+
 def gerar_relatorio_pdf(
     caminho_pdf: str,
     nome_disciplina: str,
@@ -169,7 +245,7 @@ def gerar_relatorio_pdf(
     estilos.add(ParagraphStyle("SubtitleCenter", fontName=fonte_regular, fontSize=10, leading=13, alignment=TA_CENTER, textColor=colors.HexColor("#3d4b59")))
     estilos.add(ParagraphStyle("Section", fontName=fonte_negrito, fontSize=12, leading=15, spaceBefore=14, spaceAfter=8, textColor=colors.HexColor("#1d3557")))
     estilos.add(ParagraphStyle("BodySmall", fontName=fonte_regular, fontSize=8.5, leading=11, alignment=TA_LEFT))
-    estilos.add(ParagraphStyle("cell", fontName=fonte_regular, fontSize=8, leading=10, alignment=TA_LEFT))
+    estilos.add(ParagraphStyle("cell", fontName=fonte_regular, fontSize=8, leading=11, alignment=TA_LEFT))
 
     documento = SimpleDocTemplate(
         caminho_pdf,
@@ -187,6 +263,7 @@ def gerar_relatorio_pdf(
         Paragraph(f"Relatório da Avaliação de Completude - {tipo_relatorio}", estilos["SubtitleCenter"]),
         Paragraph(escape(relatorio_analisado), estilos["SubtitleCenter"]),
         Paragraph(escape(tempo_de_processamento), estilos["SubtitleCenter"]),
+        Paragraph(escape(_get_formatted_datetime()), estilos["SubtitleCenter"]),
         Spacer(1, 0.35 * cm),
     ]
 
@@ -219,7 +296,7 @@ def gerar_relatorio_pdf(
     # =========================================================
     # TABELA 3
     # =========================================================
-    conteudo_relatorio.append(_tabela(_linhas_perguntas(perguntas, respostas, estilos), [5.2 * cm, 2.0 * cm, 9.0 * cm]))
+    conteudo_relatorio.append(_tabela(_linhas_perguntas(perguntas, respostas, estilos), [4.8 * cm, 2.0 * cm, 7.0 * cm, 2.2 * cm]))
     conteudo_relatorio.append(Spacer(1, 0.4 * cm))
     conteudo_relatorio.append(Paragraph(
         "Observação: esta análise usa Inteligência Artificial como ferramenta de apoio. As conclusões finais e decisões técnicas permanecem sob responsabilidade humana.",

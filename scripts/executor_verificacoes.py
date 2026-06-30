@@ -76,7 +76,7 @@ def executar_verificacao_conteudo(configuracao_verificacao: ConfiguracaoVerifica
 
         tempo_total_do_modelo = fim_modelo - inicio_modelo
 
-        tempo_total_do_modelo = f"O tempo total para tratamento do documento foi de aproximadamente {(tempo_total_do_modelo/60):.2f}min"
+        tempo_total_do_modelo = f"Tempo de processamento do documento foi de aproximadamente {(tempo_total_do_modelo/60):.2f}min"
         _gerar_relatorio(
             configuracao_verificacao,
             caminho_pdf=str(_caminho_proximo_relatorio(diretorio_saida, configuracao_verificacao, configuracao_aplicacao)),
