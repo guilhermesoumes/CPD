@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 import time
+
+import shutil
 
 from xml.sax.saxutils import escape
 
@@ -68,6 +69,10 @@ def executar_verificacao_conteudo(configuracao_verificacao: ConfiguracaoVerifica
 
     diretorio_saida = _diretorio_resultado(configuracao_verificacao, configuracao_aplicacao)
     fc.garantir_diretorios_saida(str(diretorio_saida))
+
+    pasta_vectorstores = Path(__file__).resolve().parent.parent / "vectorstores"
+    print(pasta_vectorstores)
+    shutil.rmtree(pasta_vectorstores, ignore_errors=False)
 
     for arquivo_pdf in arquivos_pdf:
         inicio_modelo = time.perf_counter()

@@ -219,13 +219,13 @@ def _fundo_pagina(tela_pdf, documento):
 
     tela_pdf.restoreState()
 
-def _get_formatted_datetime():
+def _datetime_formatada():
     now = datetime.now()
 
     # Formatting date and time
-    formatted_date = now.strftime("%d/%m/%Y %H:%M")
+    data_formada = now.strftime("Relatório emitido em %d/%m/%Y às %H:%M")
 
-    return formatted_date
+    return data_formada
 
 def gerar_relatorio_pdf(
     caminho_pdf: str,
@@ -263,14 +263,14 @@ def gerar_relatorio_pdf(
         Paragraph(f"Relatório da Avaliação de Completude - {tipo_relatorio}", estilos["SubtitleCenter"]),
         Paragraph(escape(relatorio_analisado), estilos["SubtitleCenter"]),
         Paragraph(escape(tempo_de_processamento), estilos["SubtitleCenter"]),
-        Paragraph(escape(_get_formatted_datetime()), estilos["SubtitleCenter"]),
+        Paragraph(escape(_datetime_formatada()), estilos["SubtitleCenter"]),
         Spacer(1, 0.35 * cm),
     ]
 
     # =========================================================
     # TABELA 1
     # =========================================================
-
+    """
     linhas_resumo = [
         ["Indicador", "Resultado"],
         ["Conformidade geral", pontuacao_geral or "-"],
@@ -279,7 +279,7 @@ def gerar_relatorio_pdf(
     conteudo_relatorio.append(_tabela(linhas_resumo, [8 * cm, 8 * cm]))
 
     conteudo_relatorio.append(Paragraph("Dados do projeto", estilos["Section"]))
-
+    """
     # =========================================================
     # TABELA 2
     # =========================================================

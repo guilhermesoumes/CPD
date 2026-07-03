@@ -121,6 +121,8 @@ class TelaAbertura(ctk.CTkToplevel):
         # IMPORTS PESADOS
         # =====================================================
 
+        fc.carregar_modelo("glm-ocr")
+
         self.after(1000, self.finalizar)
 
 
@@ -474,7 +476,7 @@ class AplicacaoPrincipal(ctk.CTk):
 
         self.quadro_verificacoes = ctk.CTkFrame(self.quadro_direito, fg_color="transparent")
         self.quadro_verificacoes.pack(fill="x", padx=90)
-        self.quadro_verificacoes.grid_columnconfigure(1, weight=1)
+        self.quadro_verificacoes.grid_columnconfigure(0, weight=1)
 
         self.lista_verificacoes = ctk.CTkOptionMenu(
             self.quadro_verificacoes,
@@ -483,23 +485,16 @@ class AplicacaoPrincipal(ctk.CTk):
         )
         self.lista_verificacoes.set("Selecione...")
 
-        self.lista_verificacoes.grid(row=0, column=0, sticky="w", pady=2)
+        self.lista_verificacoes.grid(row=0, column=0, pady=2)
 
         # =====================================================
         # MENSAGEM DE ERRO
         # =====================================================
 
         self.rotulo_erro = ctk.CTkLabel(self.quadro_direito, text="", fg_color="transparent") # texto alterado com a função selecionar_diretorio
-        self.rotulo_erro.pack(anchor="center")
+        self.rotulo_erro.pack(anchor="center", pady=(0, 5))
 
-        # =====================================================
-        # PROGRESSO
-        # =====================================================
 
-        self.progresso = ctk.CTkProgressBar(
-            self.quadro_direito,
-            mode="indeterminate"
-        )
 
         # =====================================================
         # EXECUTAR
@@ -513,7 +508,24 @@ class AplicacaoPrincipal(ctk.CTk):
             height=40
         )
 
-        self.botao_executar.pack(pady=(80,0))
+        self.botao_executar.pack(pady=(50,15))
+        
+
+        # =====================================================
+        # PROGRESSO
+        # =====================================================
+
+        self.progresso = ctk.CTkProgressBar(
+            self.quadro_direito,
+            mode="indeterminate",
+            width=320,
+        )
+        self.progresso.set(0)
+
+        self.progresso.pack(pady=(5, 5))
+
+        self.progresso.pack_forget()
+
 
 
     # =========================================================
@@ -743,9 +755,7 @@ class AplicacaoPrincipal(ctk.CTk):
         )
 
         self.progresso.pack(
-            fill="x",
-            padx=30,
-            pady=(0, 20)
+            pady=(5, 5)
         )
 
         self.progresso.start()

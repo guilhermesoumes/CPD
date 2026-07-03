@@ -2,7 +2,6 @@ from openai import OpenAI
 from pathlib import Path
 import base64
 import mimetypes
-import time
 import re
 
 import pymupdf
@@ -11,6 +10,8 @@ from pathlib import Path
 
 from langchain_core.documents import Document
 from collections import Counter
+
+import scripts.funcoes_comuns as fc
 
 # configuração do LM Studio
 URL_BASE_API_PADRAO = "http://127.0.0.1:1234/v1"
@@ -130,6 +131,12 @@ def pdf_para_documentos(caminho_pdf: str | Path) -> list[Document]:
 
     lista_resultados = processar_pdf_com_imagens_temporarias(caminho_pdf=caminho_pdf)
 
+    try:
+        print('problema era aqui')
+        fc.descarregar_modelo(MODELO_SCAN)
+    except Exception as erro:
+        print(f"Não foi possível descarregar o modelo de extração: {erro}")
+
     todas_linhas: list[str] = []
     
     for pagina in lista_resultados:
@@ -153,7 +160,6 @@ def pdf_para_documentos(caminho_pdf: str | Path) -> list[Document]:
         if not linhas_filtradas:
             continue
         
-
         texto_pagina = "\n".join(linhas_filtradas)
         texto_pagina = re.sub(r"\n{3,}", "\n\n", texto_pagina)
 
@@ -167,27 +173,3 @@ def pdf_para_documentos(caminho_pdf: str | Path) -> list[Document]:
                 )
 
     return documentos
-
-
-    # ===============================================================
-    '''
-    inicio_modelo = time.perf_counter()
-
-    resultados = processar_pdf_com_imagens_temporarias(
-        caminho_pdf=r"Relatório Volume 2 - Tomo III - Estudo de Traçado lote 2 (6525159).pdf",
-        dpi=200,
-        model=MODELO_SCAN
-    )
-
-    for item in resultados:
-        print()
-        print(f"Página: {item['pagina']}")
-        print(f"Resultado: {item['resultado']}")
-    
-    fim_modelo = time.perf_counter()
-
-    tempo_total_do_modelo = fim_modelo - inicio_modelo
-
-    print(f"\n\n\n O tempo total para extrair o texto do documento foi de {tempo_total_do_modelo:.2f}s, que corresponde a {(tempo_total_do_modelo/60):.2f}min")
-    '''
-

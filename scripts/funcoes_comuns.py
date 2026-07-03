@@ -7,13 +7,18 @@ import re
 import sys
 from pathlib import Path
 
+from urllib.parse import urlparse
+import requests
+
+import subprocess
+
+from typing import Any
 
 RAIZ_PROJETO = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
 
 # retorna caminho da pasta ou arquivo considerando também pacotes PyInstaller
 def resolve_caminho(caminho_relativo: str) -> str:
     return str(RAIZ_PROJETO / caminho_relativo)
-
 
 # puxa informações de um aquivo 
 def carregar_configuracao(arquivo_configuracao: str | Path) -> dict:
@@ -24,11 +29,9 @@ def carregar_configuracao(arquivo_configuracao: str | Path) -> dict:
             return json.load(arquivo)
     return {}
 
-
 # cria a pasta de saída dos resultados
 def garantir_diretorios_saida(pasta: str | Path) -> None:
     Path(pasta).mkdir(parents=True, exist_ok=True)
-
 
 # formatar valor de lote
 def padronizar_lote(valor: str) -> str:
@@ -38,7 +41,6 @@ def padronizar_lote(valor: str) -> str:
         return texto
     numero, letra = correspondencia.groups()
     return f"{numero.zfill(2)}{letra.upper()}"
-
 
 # cria o nome do próximo relatório 
 def proximo_nome_relatorio(diretorio_saida: str | Path, ano: str, codigo_rodovia: str, codigo_disciplina: str, codigo_lote: str) -> str:
@@ -65,3 +67,57 @@ def proximo_nome_relatorio(diretorio_saida: str | Path, ano: str, codigo_rodovia
 
     # retorna o texto com o nome da próxima versão de RAC
     return f"RAC-{proxima_versao:03d}-{ano}_BR-{codigo_rodovia}_{codigo_disciplina}_LT-{codigo_lote}"
+
+def carregar_modelo(
+        modelo: str,
+        ) -> dict[str, Any]:
+    """
+    Carrega um modelo no LM Studio usando a API REST.
+    """
+
+    headers = {
+        "Authorization": "Bearer lm-studio",
+        "Content-Type": "application/json",
+        }
+
+    dados: dict[str, Any] = {
+        "model": modelo,
+        "context_length": 20000,
+        "echo_load_config": True,
+    }
+
+    resposta = requests.post(
+        f"http://127.0.0.1:1234/api/v1/models/load",
+        headers=headers,
+        json=dados,
+        timeout=300
+    )
+
+    resposta.raise_for_status()
+    return resposta.json()
+
+def descarregar_modelo(
+        modelo: str
+        ) -> dict[str, Any]:
+    """
+    Descarrega um modelo no LM Studio usando a API REST.
+    """
+
+    headers = {
+        "Authorization": "Bearer lm-studio",
+        "Content-Type": "application/json",
+        }
+
+    dados = {
+        "instance_id": modelo
+        }
+
+    resposta = requests.post(
+        f"http://127.0.0.1:1234/api/v1/models/unload",
+        headers=headers,
+        json=dados,
+        timeout=300
+    )
+
+    resposta.raise_for_status()
+    return resposta.json()
