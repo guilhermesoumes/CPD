@@ -121,8 +121,6 @@ class TelaAbertura(ctk.CTkToplevel):
         # IMPORTS PESADOS
         # =====================================================
 
-        fc.carregar_modelo("glm-ocr")
-
         self.after(1000, self.finalizar)
 
 
@@ -365,12 +363,14 @@ class AplicacaoPrincipal(ctk.CTk):
         self.rotulo_tipo_projeto.grid(row=7, column=0, sticky="w")
 
         tipo_projeto = [
-            "Manutenção",
-            "Implantação",
-            "Misto",
             "Duplicação",
+            "Implantação",
+            "Manutenção",
+            "Misto",
             "OAE",
-            "Proarte"
+            "Proarte",
+            "Reabilitação",
+            "Restauração"
         ]
         self.campo_tipo_projeto = ctk.CTkOptionMenu(quadro_formulario, values=tipo_projeto)
         self.campo_tipo_projeto.grid(row=7, column=1, sticky="ew", padx=(10, 0), pady=2)

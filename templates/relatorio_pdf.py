@@ -306,5 +306,5 @@ def gerar_relatorio_pdf(
     documento.build(
         conteudo_relatorio,
         onFirstPage=_fundo_pagina,
-        onLaterPages=_fundo_pagina,
+        onLaterPages=_fundo_pagina
     )

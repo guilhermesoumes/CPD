@@ -35,6 +35,7 @@ CONTEXTO:
 
 PERGUNTA:
 {pergunta}
+{informacao_adicional}
 
 INSTRUÇÕES:
 - Não invente informações.
@@ -96,14 +97,14 @@ def construir_recuperador(caminho_pdf: str | Path, raiz_persistencia: str | Path
 
     recuperador = armazenamento_vetorial.as_retriever(
         search_type="mmr",
-        search_kwargs={"k": 20, "fetch_k": 40, "lambda_mult": 0.9},
+        search_kwargs={"k": 25, "fetch_k": 50, "lambda_mult": 0.9},
     )
 
     # retorna vectorstore com parâmetros
     return recuperador, diretorio_persistencia
 
 # recebe embeddings, define modelo de LLM, cria estrutura para perguntas e ativa o LLM
-def responder_perguntas(caminho_pdf: str | Path, perguntas: list[str]) -> list[str]:
+def responder_perguntas(caminho_pdf: str | Path, perguntas: list[dict[str:str, str:str]]) -> list[str]:
     # recebe o banco de vetores e passa o prompt
     recuperador, pasta_vectorstore = construir_recuperador(caminho_pdf)
     instrucoes = ChatPromptTemplate.from_template(PROMPT)
@@ -118,29 +119,23 @@ def responder_perguntas(caminho_pdf: str | Path, perguntas: list[str]) -> list[s
     cadeia = instrucoes | modelo_linguagem | StrOutputParser()
 
     # faz as perguntas
-    respostas: list[str] = []
+    respostas = []
     print("\nembedding ok\n")
+
     try:
         for pergunta in perguntas:
-            resultados = recuperador.invoke(pergunta)
-            print("\npergunta feita\n")
-
+            resultados = recuperador.invoke(pergunta['pergunta'] + "\n" + pergunta['informacao_adicional'])
             contexto = "\n\n".join(
                 f"Pagina: {documento.metadata.get('page')}; Conteúdo: {documento.page_content}"
                 for documento in resultados
             )
 
-            respostas.append(cadeia.invoke({"contexto": contexto, "pergunta": pergunta}))
+            respostas.append(cadeia.invoke({"contexto": contexto, "pergunta": pergunta["pergunta"], "informacao_adicional": pergunta["informacao_adicional"]}))
     finally:
-        del modelo_linguagem
-        del cadeia
-        #shutil.rmtree(pasta_vectorstore, ignore_errors=True)
-
         fc.descarregar_modelo(MODELO_VETORIZACAO_PADRAO)
         print('modelo embedding descarregado')
 
         fc.descarregar_modelo(MODELO_CONVERSA_PADRAO)
         print('modelo de consulta descarregado')
-
 
     return respostas

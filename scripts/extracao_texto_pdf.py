@@ -128,11 +128,11 @@ def processar_pdf_com_imagens_temporarias(
 
 # Extrai blocos úteis de um PDF, descartando cabeçalhos repetidos
 def pdf_para_documentos(caminho_pdf: str | Path) -> list[Document]:
+    fc.carregar_modelo(MODELO_SCAN)
 
     lista_resultados = processar_pdf_com_imagens_temporarias(caminho_pdf=caminho_pdf)
 
     try:
-        print('problema era aqui')
         fc.descarregar_modelo(MODELO_SCAN)
     except Exception as erro:
         print(f"Não foi possível descarregar o modelo de extração: {erro}")

@@ -72,7 +72,7 @@ def executar_verificacao_conteudo(configuracao_verificacao: ConfiguracaoVerifica
 
     pasta_vectorstores = Path(__file__).resolve().parent.parent / "vectorstores"
     print(pasta_vectorstores)
-    shutil.rmtree(pasta_vectorstores, ignore_errors=False)
+    shutil.rmtree(pasta_vectorstores, ignore_errors=True)
 
     for arquivo_pdf in arquivos_pdf:
         inicio_modelo = time.perf_counter()
@@ -82,6 +82,8 @@ def executar_verificacao_conteudo(configuracao_verificacao: ConfiguracaoVerifica
         tempo_total_do_modelo = fim_modelo - inicio_modelo
 
         tempo_total_do_modelo = f"Tempo de processamento do documento foi de aproximadamente {(tempo_total_do_modelo/60):.2f}min"
+
+        print(configuracao_verificacao.perguntas)
         _gerar_relatorio(
             configuracao_verificacao,
             caminho_pdf=str(_caminho_proximo_relatorio(diretorio_saida, configuracao_verificacao, configuracao_aplicacao)),
@@ -89,6 +91,6 @@ def executar_verificacao_conteudo(configuracao_verificacao: ConfiguracaoVerifica
             relatorio_analisado=Path(arquivo_pdf).name,
             tempo_de_processamento = tempo_total_do_modelo,
             pontuacao_geral="",
-            perguntas=configuracao_verificacao.perguntas,
+            perguntas=[item["pergunta"] for item in configuracao_verificacao.perguntas],
             respostas=respostas, # respostas tratadas é a lista com os itens 2. de cada pergunta. É o que compõe a coluna 3.
         )
