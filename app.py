@@ -10,6 +10,7 @@ import threading
 import importlib.util
 import re
 import scripts.funcoes_comuns as fc
+import scripts.executor_verificacoes as executor_verificacoes
 import traceback
 
 # =========================================================
@@ -148,9 +149,13 @@ class AplicacaoPrincipal(ctk.CTk):
         self.geometry("1000x600")
         self.title("CPD-DNIT")
         self.resizable(True, True)
+        self.processando = False
+        self.cancelamento_evento = threading.Event()
+        self.thread_execucao = None
 
         caminho_icone = caminho_arquivo(Path("figs") / "logo_icone.ico")
         self.iconbitmap(caminho_arquivo(caminho_icone))
+        self.protocol("WM_DELETE_WINDOW", self.ao_fechar)
 
         # =====================================================
         # INTERFACE
@@ -503,7 +508,7 @@ class AplicacaoPrincipal(ctk.CTk):
         self.botao_executar = ctk.CTkButton(
             self.quadro_direito,
             text="Executar",
-            command=self.executar_verificacao,
+            command=self.acao_botao_executar,
             width=320,
             height=40
         )
@@ -706,12 +711,37 @@ class AplicacaoPrincipal(ctk.CTk):
     # EXECUÇÃO
     # =========================================================
 
+    def acao_botao_executar(self):
+        """Executa a verificacao ou solicita a interrupcao do processamento."""
+        if self.processando:
+            self.solicitar_interrupcao()
+            return
+
+        self.executar_verificacao()
+
+
+    def solicitar_interrupcao(self):
+        """Sinaliza ao RAG que a execucao deve parar assim que possivel."""
+        self.cancelamento_evento.set()
+        self.botao_executar.configure(
+            state="disabled",
+            text="Interrompendo..."
+        )
+        self.rotulo_erro.configure(
+            text="Interrompendo processamento...",
+            text_color="orange"
+        )
+
+
     def executar_verificacao(self):
         """Persiste o formulário e executa a verificação em segundo plano."""
         if not self.validar_campos():
             return
 
         self.limpar_validacao()
+        self.cancelamento_evento.clear()
+        self.processando = True
+        executor_verificacoes.definir_cancelamento_evento(self.cancelamento_evento)
 
         nome_verificacao = self.lista_verificacoes.get()
         fase = self.campo_fase.get()
@@ -750,8 +780,8 @@ class AplicacaoPrincipal(ctk.CTk):
         # =====================================================
 
         self.botao_executar.configure(
-            state="disabled",
-            text="Executando..."
+            state="normal",
+            text="Interromper"
         )
 
         self.progresso.pack(
@@ -787,6 +817,15 @@ class AplicacaoPrincipal(ctk.CTk):
                         )
                     )
 
+            except fc.ProcessamentoInterrompido:
+                self.after(
+                    0,
+                    lambda: self.rotulo_erro.configure(
+                        text="Processamento interrompido.",
+                        text_color="orange"
+                        )
+                    )
+
             except Exception as excecao:
                 print(traceback.format_exc())
 
@@ -799,6 +838,9 @@ class AplicacaoPrincipal(ctk.CTk):
                 )
 
             finally:
+                executor_verificacoes.definir_cancelamento_evento(None)
+                self.processando = False
+
                 self.after(
                     0,
                     self.progresso.stop
@@ -817,7 +859,18 @@ class AplicacaoPrincipal(ctk.CTk):
                         )
                     )
 
-        threading.Thread(target=rodar, daemon=True).start()
+        self.thread_execucao = threading.Thread(target=rodar, daemon=True)
+        self.thread_execucao.start()
+
+
+    def ao_fechar(self):
+        """Cancela a execucao ativa e descarrega modelos antes de fechar."""
+        if self.processando:
+            self.cancelamento_evento.set()
+
+        executor_verificacoes.definir_cancelamento_evento(None)
+        fc.descarregar_modelos_carregados()
+        self.destroy()
 
 
 # =========================================================

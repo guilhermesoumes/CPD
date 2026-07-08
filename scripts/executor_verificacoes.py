@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from threading import Event
 import time
 
 import shutil
@@ -11,6 +12,20 @@ from xml.sax.saxutils import escape
 
 import scripts.funcoes_comuns as fc
 from scripts.mecanismo_rag import responder_perguntas
+from scripts.verificacao_qrcode import enriquecer_respostas_art_com_qrcode
+
+
+_cancelamento_evento: Event | None = None
+
+
+def definir_cancelamento_evento(cancelamento_evento: Event | None) -> None:
+    global _cancelamento_evento
+    _cancelamento_evento = cancelamento_evento
+
+
+def _verificar_interrupcao() -> None:
+    if _cancelamento_evento and _cancelamento_evento.is_set():
+        raise fc.ProcessamentoInterrompido("Processamento interrompido pelo usuario.")
 
 
 # classe com os dados da disciplina a ser verificada
@@ -75,8 +90,25 @@ def executar_verificacao_conteudo(configuracao_verificacao: ConfiguracaoVerifica
     shutil.rmtree(pasta_vectorstores, ignore_errors=True)
 
     for arquivo_pdf in arquivos_pdf:
+        _verificar_interrupcao()
         inicio_modelo = time.perf_counter()
-        respostas = responder_perguntas(arquivo_pdf, configuracao_verificacao.perguntas) # lista com respostas sobre o aquivo
+
+        respostas = responder_perguntas(
+            arquivo_pdf,
+            configuracao_verificacao.perguntas,
+            cancelamento_evento=_cancelamento_evento,
+        ) 
+        
+        # lista com respostas sobre o aquivo
+        respostas = enriquecer_respostas_art_com_qrcode(
+            arquivo_pdf,
+            configuracao_verificacao.perguntas,
+            respostas,
+            cancelamento_evento=_cancelamento_evento,
+        )
+
+        
+        _verificar_interrupcao()
         fim_modelo = time.perf_counter()
 
         tempo_total_do_modelo = fim_modelo - inicio_modelo

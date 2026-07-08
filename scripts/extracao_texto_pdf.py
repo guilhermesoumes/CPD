@@ -7,6 +7,7 @@ import re
 import pymupdf
 import tempfile
 from pathlib import Path
+from threading import Event
 
 from langchain_core.documents import Document
 from collections import Counter
@@ -22,6 +23,11 @@ client = OpenAI(
     base_url=URL_BASE_API_PADRAO,
     api_key=CHAVE_API_PADRAO  # pode ser qualquer texto no LM Studio local
 )
+
+
+def _verificar_interrupcao(cancelamento_evento: Event | None) -> None:
+    if cancelamento_evento and cancelamento_evento.is_set():
+        raise fc.ProcessamentoInterrompido("Processamento interrompido pelo usuario.")
 
 def imagem_para_data_url(caminho_imagem: str) -> str:
     caminho = Path(caminho_imagem)
@@ -92,6 +98,7 @@ def processar_pdf_com_imagens_temporarias(
     dpi: int = 200,
     formato: str = "png",
     model:str = MODELO_SCAN,
+    cancelamento_evento: Event | None = None,
     ):
     pdf_path = Path(caminho_pdf)
     if not pdf_path.exists():
@@ -101,41 +108,54 @@ def processar_pdf_com_imagens_temporarias(
         pasta_temp = Path(temp_dir)
         print(pasta_temp)
         doc = pymupdf.open(pdf_path)
-        zoom = dpi / 72
-        matriz = pymupdf.Matrix(zoom, zoom)
-        for indice_pagina in range(len(doc)):
-            numero_pagina = indice_pagina + 1
-            pagina = doc[indice_pagina]
-            pix = pagina.get_pixmap(
-                matrix=matriz,
-                alpha=False
-            )
-            caminho_imagem = pasta_temp / f"pagina_{numero_pagina:04d}.png"
-            pix.save(caminho_imagem)
-            resultado = extrair_com_modelo(
-                caminho_imagem=caminho_imagem,
-                numero_pagina=numero_pagina,
-                model=model
-            )
-            resultados.append({
-                "pagina": numero_pagina,
-                #"imagem": str(caminho_imagem),
-                "resultado": resultado
-            })
-        doc.close()
+        try:
+            zoom = dpi / 72
+            matriz = pymupdf.Matrix(zoom, zoom)
+            for indice_pagina in range(len(doc)):
+                _verificar_interrupcao(cancelamento_evento)
+                numero_pagina = indice_pagina + 1
+                pagina = doc[indice_pagina]
+                pix = pagina.get_pixmap(
+                    matrix=matriz,
+                    alpha=False
+                )
+                caminho_imagem = pasta_temp / f"pagina_{numero_pagina:04d}.png"
+                pix.save(caminho_imagem)
+                resultado = extrair_com_modelo(
+                    caminho_imagem=caminho_imagem,
+                    numero_pagina=numero_pagina,
+                    model=model
+                )
+                resultados.append({
+                    "pagina": numero_pagina,
+                    #"imagem": str(caminho_imagem),
+                    "resultado": resultado
+                })
+                _verificar_interrupcao(cancelamento_evento)
+        finally:
+            doc.close()
     return resultados
 
 
 # Extrai blocos úteis de um PDF, descartando cabeçalhos repetidos
-def pdf_para_documentos(caminho_pdf: str | Path) -> list[Document]:
+def pdf_para_documentos(caminho_pdf: str | Path, cancelamento_evento: Event | None = None) -> list[Document]:
+    _verificar_interrupcao(cancelamento_evento)
+
     fc.carregar_modelo(MODELO_SCAN)
 
-    lista_resultados = processar_pdf_com_imagens_temporarias(caminho_pdf=caminho_pdf)
-
     try:
-        fc.descarregar_modelo(MODELO_SCAN)
-    except Exception as erro:
-        print(f"Não foi possível descarregar o modelo de extração: {erro}")
+        lista_resultados = processar_pdf_com_imagens_temporarias(
+            caminho_pdf=caminho_pdf,
+            cancelamento_evento=cancelamento_evento,
+        )
+    finally:
+        try:
+            fc.descarregar_modelo(MODELO_SCAN)
+        except Exception as erro:
+            print(f"Nao foi possivel descarregar o modelo de extracao: {erro}")
+
+    _verificar_interrupcao(cancelamento_evento)
+
 
     todas_linhas: list[str] = []
     

@@ -100,7 +100,7 @@ def _extrair_trechos_paginas(resposta: str):
 
     # Agora separa Trecho e Página
     padrao = re.compile(
-        r"-\s*Trecho:\s*(?P<trecho>.*?)\s*,\s*na\s+página:\s*(?P<pagina>.*?)(?=\s*-\s*Trecho:|$)",
+        r"-\s*Trecho:\s*(?P<trecho>.*?)\s*,\s*na\s+p(?:á|a|Ã¡)gina:\s*(?P<pagina>.*?)(?=\s*-\s*Trecho:|$)",
         flags=re.S | re.I
     )
 

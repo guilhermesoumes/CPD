@@ -15,6 +15,16 @@ import subprocess
 from typing import Any
 
 RAIZ_PROJETO = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
+MODELOS_CONHECIDOS = (
+    "glm-ocr",
+    "text-embedding-qwen3-embedding-0.6b",
+    "google/gemma-3n-e4b",
+)
+MODELOS_CARREGADOS: set[str] = set()
+
+
+class ProcessamentoInterrompido(Exception):
+    """Indica que o usuario solicitou a interrupcao do processamento."""
 
 # retorna caminho da pasta ou arquivo considerando também pacotes PyInstaller
 def resolve_caminho(caminho_relativo: str) -> str:
@@ -94,10 +104,12 @@ def carregar_modelo(
     )
 
     resposta.raise_for_status()
+    MODELOS_CARREGADOS.add(modelo)
     return resposta.json()
 
 def descarregar_modelo(
-        modelo: str
+        modelo: str,
+        timeout: int = 300,
         ) -> dict[str, Any]:
     """
     Descarrega um modelo no LM Studio usando a API REST.
@@ -116,8 +128,24 @@ def descarregar_modelo(
         f"http://127.0.0.1:1234/api/v1/models/unload",
         headers=headers,
         json=dados,
-        timeout=300
+        timeout=timeout
     )
 
     resposta.raise_for_status()
+    MODELOS_CARREGADOS.discard(modelo)
     return resposta.json()
+
+
+def descarregar_modelos_carregados(modelos: list[str] | tuple[str, ...] | None = None) -> None:
+    """Tenta descarregar os modelos conhecidos sem interromper o fechamento do app."""
+
+    modelos_para_descarregar = tuple(dict.fromkeys(
+        list(modelos or ()) + list(MODELOS_CARREGADOS) + list(MODELOS_CONHECIDOS)
+    ))
+
+    for modelo in modelos_para_descarregar:
+        try:
+            descarregar_modelo(modelo, timeout=10)
+            print(f"Modelo descarregado: {modelo}")
+        except Exception as erro:
+            print(f"Nao foi possivel descarregar o modelo {modelo}: {erro}")
