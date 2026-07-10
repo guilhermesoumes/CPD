@@ -3,11 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 from threading import Event
 import re
+import cv2
+import numpy as np
 
 import pymupdf
 
 import scripts.funcoes_comuns as fc
-
 
 PERGUNTA_ART = "anotação de responsabilidade técnica"
 
@@ -35,47 +36,49 @@ def _paginas_citadas(resposta: str) -> list[int]:
 def pagina_tem_qrcode(
     caminho_pdf: str | Path,
     numero_pagina: int,
-    zoom: int = 3,
-) -> tuple[bool, str, str]:
+    zoom: int = 3
+    ) -> bool:
     """Verifica QR Code em uma pagina de PDF usando indice humano, iniciado em 1."""
 
-    try:
-        import cv2
-        import numpy as np
-    except ImportError:
-        return False, "", "OpenCV/NumPy nao instalado"
-
+    # abre o documento
     caminho_pdf = Path(caminho_pdf)
     with pymupdf.open(caminho_pdf) as documento:
         if numero_pagina < 1 or numero_pagina > len(documento):
-            return False, "", "pagina inexistente"
+            return False
 
+        # seleção da página
         pagina = documento[numero_pagina - 1]
+        
+        # renderização como imagem
         matriz = pymupdf.Matrix(zoom, zoom)
         pix = pagina.get_pixmap(matrix=matriz)
 
+    # converte os pixels para um array NumPy
     imagem = np.frombuffer(pix.samples, dtype=np.uint8).reshape(
         pix.height,
         pix.width,
         pix.n,
     )
 
+    # ajusta as cores para o padrão BGR usado pelo OpenCV
     if pix.n == 4:
         imagem = cv2.cvtColor(imagem, cv2.COLOR_RGBA2BGR)
     elif pix.n == 3:
         imagem = cv2.cvtColor(imagem, cv2.COLOR_RGB2BGR)
 
+    # verifica se tem qr code
     detector = cv2.QRCodeDetector()
     conteudo, pontos, _ = detector.detectAndDecode(imagem)
 
-    return bool(pontos is not None), conteudo or "", ""
+    # retorna True se conseguir decodificar o qr code e False se não conseguir. 
+    return bool(pontos is not None)
 
 
 def _mapear_qrcode_por_pagina(
     caminho_pdf: str | Path,
     paginas: list[int],
     cancelamento_evento: Event | None = None,
-) -> dict[int, tuple[bool, str, str]]:
+    ) -> dict[int, tuple[bool, str, str]]:
     resultados = {}
 
     for pagina in paginas:

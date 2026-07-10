@@ -12,7 +12,7 @@ from xml.sax.saxutils import escape
 
 import scripts.funcoes_comuns as fc
 from scripts.mecanismo_rag import responder_perguntas
-from scripts.verificacao_qrcode import enriquecer_respostas_art_com_qrcode
+
 
 
 _cancelamento_evento: Event | None = None
@@ -78,49 +78,49 @@ def _diretorio_resultado(configuracao_verificacao: ConfiguracaoVerificacao, conf
 def executar_verificacao_conteudo(configuracao_verificacao: ConfiguracaoVerificacao) -> None:
     configuracao_aplicacao = fc.carregar_configuracao(fc.resolve_caminho("config.json"))
 
+    # seleção dos arquivos
     arquivos_pdf = configuracao_aplicacao.get("arquivos-para-analisar") or []
     if not arquivos_pdf:
         raise ValueError("Nenhum PDF foi selecionado para análise.")
 
+    # selação da pasta de exportação 
     diretorio_saida = _diretorio_resultado(configuracao_verificacao, configuracao_aplicacao)
     fc.garantir_diretorios_saida(str(diretorio_saida))
 
+    # apagar bancos de vetores anteriores, caso existam
     pasta_vectorstores = Path(__file__).resolve().parent.parent / "vectorstores"
     print(pasta_vectorstores)
     shutil.rmtree(pasta_vectorstores, ignore_errors=True)
 
+    # executar a verificação para cada um dos arquivos
     for arquivo_pdf in arquivos_pdf:
         _verificar_interrupcao()
+
+        # marcação do tempo de início do processamento do PDF
         inicio_modelo = time.perf_counter()
 
-        respostas = responder_perguntas(
+        # fazer as parguntas e obter as respostas
+        respostas: list[str] = responder_perguntas(
             arquivo_pdf,
             configuracao_verificacao.perguntas,
-            cancelamento_evento=_cancelamento_evento,
-        ) 
-        
-        # lista com respostas sobre o aquivo
-        respostas = enriquecer_respostas_art_com_qrcode(
-            arquivo_pdf,
-            configuracao_verificacao.perguntas,
-            respostas,
             cancelamento_evento=_cancelamento_evento,
         )
 
-        
         _verificar_interrupcao()
+
+        # marcação do tempo de fim do processamento do PDF
         fim_modelo = time.perf_counter()
 
+        # marcação do tempo total de processamento do PDF
         tempo_total_do_modelo = fim_modelo - inicio_modelo
-
         tempo_total_do_modelo = f"Tempo de processamento do documento foi de aproximadamente {(tempo_total_do_modelo/60):.2f}min"
 
-        print(configuracao_verificacao.perguntas)
+        # geração do relatório PDF de completude
         _gerar_relatorio(
             configuracao_verificacao,
             caminho_pdf=str(_caminho_proximo_relatorio(diretorio_saida, configuracao_verificacao, configuracao_aplicacao)),
             nome_disciplina=configuracao_verificacao.nome_disciplina,
-            relatorio_analisado=Path(arquivo_pdf).name,
+            relatorio_analisado=Path(arquivo_pdf),
             tempo_de_processamento = tempo_total_do_modelo,
             pontuacao_geral="",
             perguntas=[item["pergunta"] for item in configuracao_verificacao.perguntas],

@@ -120,7 +120,7 @@ def responder_perguntas(
     caminho_pdf: str | Path,
     perguntas: list[dict[str:str, str:str]],
     cancelamento_evento: Event | None = None,
-) -> list[str]:
+    ) -> list[str]:
     # recebe o banco de vetores e passa o prompt
     recuperador, pasta_vectorstore = construir_recuperador(
         caminho_pdf,
@@ -147,7 +147,7 @@ def responder_perguntas(
             resultados = recuperador.invoke(pergunta['pergunta'] + "\n" + pergunta['informacao_adicional'])
             _verificar_interrupcao(cancelamento_evento)
             contexto = "\n\n".join(
-                f"Pagina: {documento.metadata.get('page')}; Conteúdo: {documento.page_content}"
+                f"Página: {documento.metadata.get('page')}; Conteúdo: {documento.page_content}"
                 for documento in resultados
             )
 
@@ -158,12 +158,12 @@ def responder_perguntas(
             fc.descarregar_modelo(MODELO_VETORIZACAO_PADRAO)
             print('modelo embedding descarregado')
         except Exception as erro:
-            print(f"Nao foi possivel descarregar o modelo embedding: {erro}")
+            print(f"Não foi possível descarregar o modelo embedding: {erro}")
 
         try:
             fc.descarregar_modelo(MODELO_CONVERSA_PADRAO)
             print('modelo de consulta descarregado')
         except Exception as erro:
-            print(f"Nao foi possivel descarregar o modelo de consulta: {erro}")
+            print(f"Não foi possível descarregar o modelo de consulta: {erro}")
 
     return respostas

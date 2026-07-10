@@ -18,6 +18,11 @@ from datetime import datetime
 
 import scripts.funcoes_comuns as fc
 
+from scripts.verificacao_qrcode import _verificar_interrupcao
+from scripts.executor_verificacoes import _verificar_interrupcao
+from scripts.verificacao_qrcode import pagina_tem_qrcode
+
+
 RAIZ_PROJETO = Path(fc.resolve_caminho("."))
 ARQUIVO_CONFIGURACAO = RAIZ_PROJETO / "config.json"
 DIRETORIO_FONTES = Path(__file__).resolve().parent / "fonts"
@@ -53,14 +58,6 @@ def _metadados_projeto() -> dict:
         "Número do último relatório": dados.get("numero-ult-relatorio", ""),
         "Analista": dados.get("analista", ""),
     }
-
-def _limpar_resposta(resposta: str) -> str:
-    """Remove marcação Markdown e prepara quebras de linha para o PDF."""
-
-    texto = re.sub(r"\*\*(.*?)\*\*", r"\1", resposta or "")
-    texto = re.sub(r"\n{3,}", "\n\n", texto).strip()
-    return escape(texto).replace("\n", "<br/>")
-
 
 def _tabela(linhas: list[list], larguras: list[float], cabecalho: bool = True) -> Table:
     """Cria uma tabela com a identidade visual padrão do RAC."""
@@ -149,21 +146,96 @@ def _formatar_lista_paginas(paginas: list[str]) -> str:
 
     return f"{', '.join(paginas_formatadas[:-1])}, e {paginas_formatadas[-1]}"
 
-def _linhas_perguntas(perguntas: list[str], respostas: list[str], estilos: dict) -> list[list]:
+def _paginas_QRCode(paginas: list[str]) -> list[str]:
+    paginas_unicas = set()
 
-    linhas = [["Pergunta", "Resposta", "Trecho que comprova", "Página"]]
-    
-    for pergunta, resposta in zip(perguntas or [], respostas or []): # passando o par (pergunta, trecho que comprova)
+    for pagina in paginas:
+        pagina = str(pagina).strip()
 
+        if not pagina:
+            continue
+
+        # Caso venha algo como "5"
+        if pagina.isdigit():
+            paginas_unicas.add(int(pagina))
+
+    paginas_ordenadas = sorted(paginas_unicas)
+
+    if not paginas_ordenadas:
+        return "-"
+
+    paginas_formatadas = [str(pagina) for pagina in paginas_ordenadas]
+
+    return paginas_formatadas
+
+def contagem_pontuacao(respostas: list[str]) -> float:
+
+    contagem_sim = 0
+    for resposta in respostas: # passando o par (pergunta, trecho que comprova)
+        # separação da resposta do LLM em 3 respostas: 1. ..., 2. ... e 3. ...
         itens_resposta = re.findall(r"\d+\s*.\s*(.*?)(?=\n\d+\s*.|$)", resposta, re.S)
 
+        # resposta do item 3.
+        ultimo_item = itens_resposta[-1].lower() if itens_resposta else ""
+        
+        contagem_sim = contagem_sim + 1 if "sim" in ultimo_item else contagem_sim
+    
+    pontuacao = (contagem_sim/len(respostas))*100
+    
+    return pontuacao
+
+def _linhas_perguntas(perguntas: list[str], respostas: list[str], estilos: dict, relatorio_analisado: str) -> list[list]:
+
+    # títulos das tabelas
+    linhas = [["Pergunta", "Resposta", "Trecho que comprova", "Página"]]
+    
+    pares = list(zip(perguntas or [], respostas or []))
+    
+    # última pergunta e resposta dizem respeito a ART
+    ultimo_par = pares[-1]
+
+    for pergunta, resposta in zip(perguntas or [], respostas or []): # passando o par (pergunta, trecho que comprova)
+
+        # separação da resposta do LLM em 3 respostas: 1. ..., 2. ... e 3. ...
+        itens_resposta = re.findall(r"\d+\s*.\s*(.*?)(?=\n\d+\s*.|$)", resposta, re.S)
+
+        # resposta do item 3.
         ultimo_item = itens_resposta[-1].lower() if itens_resposta else ""
         existencia_informacao = "Sim" if "sim" in ultimo_item else "Não"
 
+        # resposta do item 2. 
         evidencias = _extrair_trechos_paginas(resposta or "")
 
+        # transformação de cada item (trecho) da lista da resposta com os trechos em uma string com todos os trechos organizados
         trechos_txt = "\n".join(f"• {item['trecho']}" for item in evidencias)
         paginas_txt = _formatar_lista_paginas([item["pagina"] for item in evidencias])
+
+        # caminho do arquivo PDF
+        caminho_pdf = relatorio_analisado
+
+        # lista com páginas que tem qr code
+        paginas_com_qrcode = []
+
+        # se pergunta e resposta forem sobre ART
+        if (pergunta, resposta) == ultimo_par:
+
+            # lista com as páginas onde 
+            paginas_qrcode = [int(item["pagina"]) for item in evidencias]
+            paginas_qrcode = set(paginas_qrcode)
+            paginas_qrcode = list(paginas_qrcode)
+
+            print("paginas_qrcode: ", paginas_qrcode)
+            #paginas_qrcode = _paginas_QRCode([item["pagina"] for item in paginas_txt])
+            #print("consultar páginas: ", paginas_qrcode)
+
+            for pagina in paginas_qrcode:
+                _verificar_interrupcao()
+                print("caminho_pdf: ", caminho_pdf)
+                print("pagina: ", pagina)
+                if pagina_tem_qrcode(caminho_pdf= caminho_pdf, numero_pagina= pagina):
+                    paginas_com_qrcode.append(pagina)
+            
+            paginas_txt = _formatar_lista_paginas(paginas_com_qrcode)
 
         linhas.append([
             Paragraph(escape(pergunta), estilos["cell"]),
@@ -232,11 +304,10 @@ def gerar_relatorio_pdf(
     nome_disciplina: str,
     relatorio_analisado: str,
     tempo_de_processamento: str,
-    pontuacao_geral: str | None,
     perguntas: list[str] | None,
     respostas: list[str] | None,
     tipo_relatorio: str,
-) -> None:
+    ) -> None:
     """Gera um RAC com os resultados da análise de conteúdo por RAG."""
 
     fonte_regular, fonte_negrito = _registrar_fontes()
@@ -261,7 +332,7 @@ def gerar_relatorio_pdf(
     conteudo_relatorio = [
         Paragraph(f"{nome_disciplina}", estilos["TitleCenter"]),
         Paragraph(f"Relatório da Avaliação de Completude - {tipo_relatorio}", estilos["SubtitleCenter"]),
-        Paragraph(escape(relatorio_analisado), estilos["SubtitleCenter"]),
+        Paragraph(escape(Path(relatorio_analisado).name), estilos["SubtitleCenter"]),
         Paragraph(escape(tempo_de_processamento), estilos["SubtitleCenter"]),
         Paragraph(escape(_datetime_formatada()), estilos["SubtitleCenter"]),
         Spacer(1, 0.35 * cm),
@@ -270,7 +341,17 @@ def gerar_relatorio_pdf(
     # =========================================================
     # TABELA 1
     # =========================================================
-    """
+    linhas_metadados = [["Campo", "Valor"]] + [[chave, Paragraph(escape(str(valor)), estilos["cell"])] for chave, valor in metadados.items()]
+    conteudo_relatorio.append(_tabela(linhas_metadados, [6 * cm, 10 * cm]))
+
+    conteudo_relatorio.append(PageBreak())
+
+    # =========================================================
+    # TABELA 2
+    # =========================================================
+
+    pontuacao_geral = (f"{contagem_pontuacao(respostas):.1f}%")
+    
     linhas_resumo = [
         ["Indicador", "Resultado"],
         ["Conformidade geral", pontuacao_geral or "-"],
@@ -279,14 +360,6 @@ def gerar_relatorio_pdf(
     conteudo_relatorio.append(_tabela(linhas_resumo, [8 * cm, 8 * cm]))
 
     conteudo_relatorio.append(Paragraph("Dados do projeto", estilos["Section"]))
-    """
-    # =========================================================
-    # TABELA 2
-    # =========================================================
-    linhas_metadados = [["Campo", "Valor"]] + [[chave, Paragraph(escape(str(valor)), estilos["cell"])] for chave, valor in metadados.items()]
-    conteudo_relatorio.append(_tabela(linhas_metadados, [6 * cm, 10 * cm]))
-
-    conteudo_relatorio.append(PageBreak())
 
     # =========================================================
     # PÁGINA 2
@@ -296,7 +369,7 @@ def gerar_relatorio_pdf(
     # =========================================================
     # TABELA 3
     # =========================================================
-    conteudo_relatorio.append(_tabela(_linhas_perguntas(perguntas, respostas, estilos), [4.8 * cm, 2.0 * cm, 7.0 * cm, 2.2 * cm]))
+    conteudo_relatorio.append(_tabela(_linhas_perguntas(perguntas, respostas, estilos, relatorio_analisado), [4.8 * cm, 2.0 * cm, 7.0 * cm, 2.2 * cm]))
     conteudo_relatorio.append(Spacer(1, 0.4 * cm))
     conteudo_relatorio.append(Paragraph(
         "Observação: esta análise usa Inteligência Artificial como ferramenta de apoio. As conclusões finais e decisões técnicas permanecem sob responsabilidade humana.",
