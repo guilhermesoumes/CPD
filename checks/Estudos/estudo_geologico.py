@@ -9,16 +9,7 @@ CONFIGURACAO_VERIFICACAO = ConfiguracaoVerificacao(
     perguntas=[
         {"pergunta": "O documento apresenta a concepção do estudo realizado?", "informacao_adicional": ""},
         {"pergunta": "O documento apresenta mapeamento geológico?", "informacao_adicional": ""},
-        {"pergunta": "O documento apresenta o plano de sondagem?", "informacao_adicional": ""},
-        {"pergunta": "O documento possui Anotação de Responsabilidade Técnica?", "informacao_adicional": '''A Anotação de Responsabilidade Técnica é um documento obrigatório no Brasil para registrar, junto ao CREA (Conselho Regional de Engenharia e Agronomia), a responsabilidade técnica de um profissional habilitado sobre uma obra ou serviço nas áreas de engenharia, agronomia, geologia, geografia e meteorologia.
-        Acuse a existência do documento se encontrar algum dos elementos do conteúdo básico de uma ART:
-        - Identificação do profissional: nome, número de registro no Crea, CPF.
-        - Identificação do contratante: pessoa física ou jurídica, com dados completos.
-        - Descrição da obra ou serviço: tipo, local, características e escopo.
-        - Atividades técnicas: detalhamento das tarefas e responsabilidades assumidas.
-        - Datas: início e término previstos.
-        - Valor do contrato: quando aplicável.
-        - Assinaturas: do profissional e, em alguns casos, do contratante.'''}
+        {"pergunta": "O documento apresenta o plano de sondagem?", "informacao_adicional": ""}
     ],
 )
 

@@ -1,0 +1,5 @@
+procurar qr code em todas as páginas -> não, porque tem ART que não tem qr code
+
+procurar por ART -> não, porque há citações de ART no texto que tb são capturados
+
+"3. Dados da Obra/Serviço" e "4. Atividade Técnica" -> indicadores que melhor obtiveram resultados

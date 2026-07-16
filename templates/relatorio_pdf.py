@@ -92,28 +92,25 @@ def _extrair_trechos_paginas(resposta: str):
 
     if len(lista_resposta) < 2:
         return []
-
-    resposta_item_2 = lista_resposta[-2]
+    
+    resposta_item_2 = lista_resposta[1]
 
     # Agora separa Trecho e Página
     padrao = re.compile(
         r"-\s*Trecho:\s*(?P<trecho>.*?)\s*,\s*na\s+p(?:á|a|Ã¡)gina:\s*(?P<pagina>.*?)(?=\s*-\s*Trecho:|$)",
         flags=re.S | re.I
     )
-
     resultados = []
 
     for match in padrao.finditer(resposta_item_2):
         trecho = match.group("trecho").strip()
         pagina = match.group("pagina").strip()
-
         # Evita adicionar item vazio
-        if trecho and pagina:
+        if pagina:
             resultados.append({
                 "trecho": trecho,
                 "pagina": pagina
             })
-
     return resultados
 
 def _formatar_lista_paginas(paginas: list[str]) -> str:
@@ -145,28 +142,6 @@ def _formatar_lista_paginas(paginas: list[str]) -> str:
         return f"{paginas_formatadas[0]} e {paginas_formatadas[1]}"
 
     return f"{', '.join(paginas_formatadas[:-1])}, e {paginas_formatadas[-1]}"
-
-def _paginas_QRCode(paginas: list[str]) -> list[str]:
-    paginas_unicas = set()
-
-    for pagina in paginas:
-        pagina = str(pagina).strip()
-
-        if not pagina:
-            continue
-
-        # Caso venha algo como "5"
-        if pagina.isdigit():
-            paginas_unicas.add(int(pagina))
-
-    paginas_ordenadas = sorted(paginas_unicas)
-
-    if not paginas_ordenadas:
-        return "-"
-
-    paginas_formatadas = [str(pagina) for pagina in paginas_ordenadas]
-
-    return paginas_formatadas
 
 def contagem_pontuacao(respostas: list[str]) -> float:
 
@@ -216,6 +191,7 @@ def _linhas_perguntas(perguntas: list[str], respostas: list[str], estilos: dict,
         # lista com páginas que tem qr code
         paginas_com_qrcode = []
 
+        '''
         # se pergunta e resposta forem sobre ART
         if (pergunta, resposta) == ultimo_par:
 
@@ -236,6 +212,7 @@ def _linhas_perguntas(perguntas: list[str], respostas: list[str], estilos: dict,
                     paginas_com_qrcode.append(pagina)
             
             paginas_txt = _formatar_lista_paginas(paginas_com_qrcode)
+        '''
 
         linhas.append([
             Paragraph(escape(pergunta), estilos["cell"]),
@@ -341,14 +318,16 @@ def gerar_relatorio_pdf(
     # =========================================================
     # TABELA 1
     # =========================================================
-    linhas_metadados = [["Campo", "Valor"]] + [[chave, Paragraph(escape(str(valor)), estilos["cell"])] for chave, valor in metadados.items()]
-    conteudo_relatorio.append(_tabela(linhas_metadados, [6 * cm, 10 * cm]))
+    conteudo_relatorio.append(Paragraph("Dados do projeto", estilos["Section"]))
 
-    conteudo_relatorio.append(PageBreak())
+    linhas_metadados = [["Campo", "Valor"]] + [[chave, Paragraph(escape(str(valor)), estilos["cell"])] for chave, valor in metadados.items()]
+    
+    conteudo_relatorio.append(_tabela(linhas_metadados, [6 * cm, 10 * cm]))
 
     # =========================================================
     # TABELA 2
     # =========================================================
+    conteudo_relatorio.append(Spacer(1, 0.4 * cm))
 
     pontuacao_geral = (f"{contagem_pontuacao(respostas):.1f}%")
     
@@ -359,7 +338,7 @@ def gerar_relatorio_pdf(
     ]
     conteudo_relatorio.append(_tabela(linhas_resumo, [8 * cm, 8 * cm]))
 
-    conteudo_relatorio.append(Paragraph("Dados do projeto", estilos["Section"]))
+    conteudo_relatorio.append(PageBreak())
 
     # =========================================================
     # PÁGINA 2

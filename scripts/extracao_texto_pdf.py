@@ -89,7 +89,8 @@ def extrair_com_modelo(caminho_imagem: Path, numero_pagina: int, model: str):
     #tempo_total = fim - inicio
     #print(f"\nO modelo {model} demorou {tempo_total:.2f}s")
     conteudo = resposta.choices[0].message.content
-    #print(conteudo)
+    #if numero_pagina in [19, 20, 21, 22]:
+    #    print(conteudo)
     #print("-"*25)
     return conteudo
 

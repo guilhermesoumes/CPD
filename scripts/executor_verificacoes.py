@@ -12,11 +12,9 @@ from xml.sax.saxutils import escape
 
 import scripts.funcoes_comuns as fc
 from scripts.mecanismo_rag import responder_perguntas
-
-
+from verificacao_ART import verificar_art
 
 _cancelamento_evento: Event | None = None
-
 
 def definir_cancelamento_evento(cancelamento_evento: Event | None) -> None:
     global _cancelamento_evento
@@ -100,13 +98,33 @@ def executar_verificacao_conteudo(configuracao_verificacao: ConfiguracaoVerifica
         inicio_modelo = time.perf_counter()
 
         # fazer as parguntas e obter as respostas
-        respostas: list[str] = responder_perguntas(
+        respostas, recuperador = responder_perguntas(
             arquivo_pdf,
             configuracao_verificacao.perguntas,
             cancelamento_evento=_cancelamento_evento,
         )
 
+        tem_art: list[str]  = verificar_art(
+            caminho_pdf=arquivo_pdf,
+            cancelamento_evento=_cancelamento_evento,
+            recuperador=recuperador
+        )
+
+        if tem_art:
+            evidencia = ""
+            for pagina in tem_art:
+                evidencia = evidencia + f"- Trecho: , na página: {pagina}\n"
+            complemento_resposta = f"1. Sim \n2. {evidencia} \n3. Sim"
+        else:
+            complemento_resposta = "1. Não 2. - 3. Não"
+
+        respostas.append(complemento_resposta)
+
+        configuracao_verificacao.perguntas.append({"pergunta": "O documento apresenta Anotação de Responsabilidade Técnica (ART)?", "informacao_adicional": ""})
         _verificar_interrupcao()
+        print(f"Perguntas: {configuracao_verificacao.perguntas}")
+        print(f"Respostas: {respostas}")
+
 
         # marcação do tempo de fim do processamento do PDF
         fim_modelo = time.perf_counter()
@@ -122,7 +140,6 @@ def executar_verificacao_conteudo(configuracao_verificacao: ConfiguracaoVerifica
             nome_disciplina=configuracao_verificacao.nome_disciplina,
             relatorio_analisado=Path(arquivo_pdf),
             tempo_de_processamento = tempo_total_do_modelo,
-            pontuacao_geral="",
             perguntas=[item["pergunta"] for item in configuracao_verificacao.perguntas],
             respostas=respostas, # respostas tratadas é a lista com os itens 2. de cada pergunta. É o que compõe a coluna 3.
         )

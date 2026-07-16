@@ -17,8 +17,6 @@ from scripts.extracao_texto_pdf import pdf_para_documentos
 
 import scripts.funcoes_comuns as fc
 
-
-
 # configuração do LM Studio
 URL_BASE_API_PADRAO = "http://127.0.0.1:1234/v1"
 CHAVE_API_PADRAO = "lm-studio"
@@ -105,6 +103,7 @@ def construir_recuperador(
         embedding=vetores_representacao,
         persist_directory=str(diretorio_persistencia),
     )
+
     _verificar_interrupcao(cancelamento_evento)
 
     recuperador = armazenamento_vetorial.as_retriever(
@@ -166,4 +165,4 @@ def responder_perguntas(
         except Exception as erro:
             print(f"Não foi possível descarregar o modelo de consulta: {erro}")
 
-    return respostas
+    return respostas, recuperador
