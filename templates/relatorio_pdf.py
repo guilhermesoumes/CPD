@@ -45,11 +45,12 @@ def _metadados_projeto() -> dict:
 
     dados = fc.carregar_configuracao(str(ARQUIVO_CONFIGURACAO))
     return {
+        "Contrato": dados.get("contrato", ""),
         "Processo": dados.get("processo", ""),
         "Edital": dados.get("edital", ""),
-        "Contrato": dados.get("contrato", ""),
         "Modalidade de contratação": dados.get("modalidade-de-contratacao", ""),
         "Rodovia": f"BR {dados.get('rodovia', '')}".strip(),
+        "Segmento": dados.get("segmento", ""),
         "Extensão": dados.get("extensao", ""),
         "Lote": dados.get("lote", ""),
         "Tipo de projeto": dados.get("tipo-de-projeto", ""),

@@ -31,13 +31,30 @@ TIMEOUT_VERIFICACAO_LM = 3  # segundos
 # =========================================================
 # FUNÇÕES AUXILIARES
 # =========================================================
+def caminho_dados_usuario() -> Path:
+    """Retorna uma pasta persistente para os dados da aplicação."""
+    if sys.platform == "win32":
+        pasta_base = Path.home() / "AppData" / "Local"
+    else:
+        pasta_base = Path.home() / ".local" / "share"
+
+    pasta_aplicacao = pasta_base / "CPD-DNIT"
+    pasta_aplicacao.mkdir(parents=True, exist_ok=True)
+
+    return pasta_aplicacao
+
+
+ARQUIVO_CONFIGURACAO = caminho_dados_usuario() / "config.json"
+
+
 def caminho_arquivo(caminho_relativo):
-    """Resolve arquivos do projeto no código-fonte ou no pacote PyInstaller."""
+    #Resolve arquivos do projeto no código-fonte ou no pacote PyInstaller.
 
     caminho_base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
     return caminho_base / caminho_relativo
 
-ARQUIVO_CONFIGURACAO = caminho_arquivo("config.json")
+# ARQUIVO_CONFIGURACAO = caminho_arquivo("config.json")
+
 
 def salvar_json(chave, valor):
     """Atualiza uma única chave no arquivo local de configuração."""
@@ -78,6 +95,15 @@ def carregar_json():
             return json.load(arquivo_configuracao)
 
     return {}
+
+def normalizar_contrato(contrato: str) -> str:
+    """
+    Padroniza o contrato para ser utilizado como chave no histórico.
+
+    Assim, contratos digitados com diferenças de espaços ou letras
+    minúsculas serão reconhecidos como o mesmo contrato.
+    """
+    return " ".join(contrato.strip().upper().split())
 
 # =========================================================
 # SPLASH SCREEN
@@ -173,6 +199,9 @@ class AplicacaoPrincipal(ctk.CTk):
         self.encerrando = False
         self.verificacao_lm_em_andamento = False
         self.agendamento_verificacao_lm = None
+
+        self.janela_sugestoes_contrato = None
+        self.selecionando_sugestao_contrato = False
 
         self.criar_interface()
         self.carregar_dados_salvos()
@@ -333,6 +362,154 @@ class AplicacaoPrincipal(ctk.CTk):
         )
 
     # =========================================================
+    # AUTOCOMPLETE CONTRATO
+    # =========================================================
+    def obter_contratos_salvos(self) -> list[str]:
+        """Retorna os contratos armazenados no histórico."""
+        dados = carregar_json()
+        historico = dados.get("historico-contratos", {})
+
+        return sorted(historico.keys())
+
+
+    def atualizar_sugestoes_contrato(self, *_args) -> None:
+        """
+        Mostra contratos salvos que correspondem ao texto digitado.
+        """
+        texto_digitado = normalizar_contrato(
+            self.variavel_contrato.get()
+        )
+
+        if not texto_digitado:
+            self.fechar_sugestoes_contrato()
+            return
+
+        contratos = self.obter_contratos_salvos()
+
+        sugestoes = [
+            contrato
+            for contrato in contratos
+            if texto_digitado in contrato
+        ]
+
+        # Evita mostrar a lista quando o contrato já foi digitado por completo.
+        if not sugestoes or sugestoes == [texto_digitado]:
+            self.fechar_sugestoes_contrato()
+            return
+
+        self.mostrar_sugestoes_contrato(sugestoes[:8])
+
+
+    def mostrar_sugestoes_contrato(
+        self,
+        sugestoes: list[str]
+    ) -> None:
+        """Exibe as sugestões abaixo do campo Contrato."""
+        self.fechar_sugestoes_contrato()
+
+        self.update_idletasks()
+
+        x = self.campo_contrato.winfo_rootx()
+        y = (
+            self.campo_contrato.winfo_rooty()
+            + self.campo_contrato.winfo_height()
+        )
+
+        largura = self.campo_contrato.winfo_width()
+        altura = min(len(sugestoes) * 36, 250)
+
+        self.janela_sugestoes_contrato = ctk.CTkToplevel(self)
+        self.janela_sugestoes_contrato.overrideredirect(True)
+        self.janela_sugestoes_contrato.geometry(
+            f"{largura}x{altura}+{x}+{y}"
+        )
+
+        self.janela_sugestoes_contrato.attributes("-topmost", True)
+
+        quadro = ctk.CTkScrollableFrame(
+            self.janela_sugestoes_contrato,
+            corner_radius=4
+        )
+        quadro.pack(fill="both", expand=True)
+
+        for contrato in sugestoes:
+            botao = ctk.CTkButton(
+                quadro,
+                text=contrato,
+                anchor="w",
+                height=30,
+                fg_color="transparent",
+                text_color=COR_TEXTO,
+                hover_color=("#d9d9d9", "#333333"),
+                command=lambda valor=contrato: (
+                    self.selecionar_contrato_sugerido(valor)
+                )
+            )
+
+            botao.pack(
+                fill="x",
+                padx=2,
+                pady=1
+            )
+
+
+    def selecionar_contrato_sugerido(
+        self,
+        contrato: str
+    ) -> None:
+        """Insere o contrato selecionado e recupera seus dados."""
+        self.selecionando_sugestao_contrato = True
+
+        self.variavel_contrato.set(contrato)
+        self.fechar_sugestoes_contrato()
+
+        self.buscar_dados_do_contrato()
+
+        self.campo_contrato.focus_set()
+        self.campo_contrato.icursor("end")
+
+        self.after(
+            100,
+            self.finalizar_selecao_sugestao
+        )
+
+
+    def finalizar_selecao_sugestao(self) -> None:
+        self.selecionando_sugestao_contrato = False
+
+
+    def ao_sair_campo_contrato(self, evento=None) -> None:
+        """
+        Aguarda brevemente antes de fechar a lista.
+
+        Esse atraso permite que o clique em uma sugestão seja processado.
+        """
+        self.after(
+            150,
+            self.processar_saida_campo_contrato
+        )
+
+
+    def processar_saida_campo_contrato(self) -> None:
+        if self.selecionando_sugestao_contrato:
+            return
+
+        self.fechar_sugestoes_contrato()
+        self.buscar_dados_do_contrato()
+
+
+    def fechar_sugestoes_contrato(self) -> None:
+        """Fecha a janela de sugestões, caso esteja aberta."""
+        if self.janela_sugestoes_contrato is not None:
+            try:
+                self.janela_sugestoes_contrato.destroy()
+            except Exception:
+                pass
+
+            self.janela_sugestoes_contrato = None
+
+    
+    # =========================================================
     # INTERFACE
     # =========================================================
 
@@ -423,36 +600,65 @@ class AplicacaoPrincipal(ctk.CTk):
         quadro_formulario.pack(fill="x", padx=30, pady = (25,0))
         quadro_formulario.grid_columnconfigure(1, weight=1)
 
+        # =====================================================
+        # CONTRATO
+        # =====================================================
+
+        self.rotulo_contrato = ctk.CTkLabel(quadro_formulario, text="Contrato", width=75, anchor="w")
+        self.rotulo_contrato.grid(row=0, column=0, sticky="w")
+
+        self.variavel_contrato = ctk.StringVar()
+        self.campo_contrato = ctk.CTkEntry(
+            quadro_formulario,
+            textvariable=self.variavel_contrato
+        )
+
+        self.campo_contrato.grid(row=0, column=1, sticky="ew", padx=(10, 0), pady=2)
+
+        self.variavel_contrato.trace_add(
+            "write",
+            self.atualizar_sugestoes_contrato
+        )
+
+        self.campo_contrato.bind(
+            "<FocusOut>",
+            self.ao_sair_campo_contrato
+        )
+
+        self.campo_contrato.bind(
+            "<Return>",
+            self.buscar_dados_do_contrato
+        )
+
+        self.campo_contrato.bind(
+            "<FocusOut>",
+            self.buscar_dados_do_contrato
+        )
+
+        self.campo_contrato.bind(
+            "<Return>",
+            self.buscar_dados_do_contrato
+        )
 
         # =====================================================
         # PROCESSO
         # =====================================================
 
-        self.rotulo_processo = ctk.CTkLabel(quadro_formulario, text="Processo", width=75, anchor="w")
-        self.rotulo_processo.grid(row=0, column=0, sticky="w", pady=2)
+        self.rotulo_processo = ctk.CTkLabel(quadro_formulario, text="*Processo", width=75, anchor="w")
+        self.rotulo_processo.grid(row=1, column=0, sticky="w", pady=2)
 
         self.campo_processo = ctk.CTkEntry(quadro_formulario)
-        self.campo_processo.grid(row=0, column=1, sticky="ew", padx=(10, 0), pady=2)
+        self.campo_processo.grid(row=1, column=1, sticky="ew", padx=(10, 0), pady=2)
 
         # =====================================================
         # EDITAL
         # =====================================================
 
         self.rotulo_edital = ctk.CTkLabel(quadro_formulario, text="Edital", width=75, anchor="w")
-        self.rotulo_edital.grid(row=1, column=0, sticky="w")
+        self.rotulo_edital.grid(row=2, column=0, sticky="w")
 
         self.campo_edital = ctk.CTkEntry(quadro_formulario)
-        self.campo_edital.grid(row=1, column=1, sticky="ew", padx=(10, 0), pady=2)
-
-        # =====================================================
-        # CONTRATO
-        # =====================================================
-
-        self.rotulo_contrato = ctk.CTkLabel(quadro_formulario, text="Contrato", width=75, anchor="w")
-        self.rotulo_contrato.grid(row=2, column=0, sticky="w")
-
-        self.campo_contrato = ctk.CTkEntry(quadro_formulario)
-        self.campo_contrato.grid(row=2, column=1, sticky="ew", padx=(10, 0), pady=2)
+        self.campo_edital.grid(row=2, column=1, sticky="ew", padx=(10, 0), pady=2)
 
         # =====================================================
         # MODALIDADE
@@ -468,38 +674,48 @@ class AplicacaoPrincipal(ctk.CTk):
         # BR
         # =====================================================
 
-        self.rotulo_rodovia = ctk.CTkLabel(quadro_formulario, text="Rodovia", width=75, anchor="w")
+        self.rotulo_rodovia = ctk.CTkLabel(quadro_formulario, text="*Rodovia", width=75, anchor="w")
         self.rotulo_rodovia.grid(row=4, column=0, sticky="w")
 
         self.campo_rodovia = ctk.CTkEntry(quadro_formulario, placeholder_text="BR no formato XXX/UF. Ex: 123/DF")
         self.campo_rodovia.grid(row=4, column=1, sticky="ew", padx=(10, 0), pady=2)
 
         # =====================================================
+        # SEGMENTO
+        # =====================================================
+
+        self.rotulo_segmento = ctk.CTkLabel(quadro_formulario, text="Segmento", width=75, anchor="w")
+        self.rotulo_segmento.grid(row=5, column=0, sticky="w")
+
+        self.campo_segmento = ctk.CTkEntry(quadro_formulario, placeholder_text="")
+        self.campo_segmento.grid(row=5, column=1, sticky="ew", padx=(10, 0), pady=2)
+
+        # =====================================================
         # EXTENSÃO
         # =====================================================
 
-        self.rotulo_extensao = ctk.CTkLabel(quadro_formulario, text="Extensão", width=75, anchor="w")
-        self.rotulo_extensao.grid(row=5, column=0, sticky="w")
+        self.rotulo_extensao = ctk.CTkLabel(quadro_formulario, text="*Extensão", width=75, anchor="w")
+        self.rotulo_extensao.grid(row=6, column=0, sticky="w")
 
         self.campo_extensao = ctk.CTkEntry(quadro_formulario, placeholder_text="")
-        self.campo_extensao.grid(row=5, column=1, sticky="ew", padx=(10, 0), pady=2)
+        self.campo_extensao.grid(row=6, column=1, sticky="ew", padx=(10, 0), pady=2)
 
         # =====================================================
         # LOTE
         # =====================================================
 
-        self.rotulo_lote = ctk.CTkLabel(quadro_formulario, text="Lote", width=75, anchor="w")
-        self.rotulo_lote.grid(row=6, column=0, sticky="w")
+        self.rotulo_lote = ctk.CTkLabel(quadro_formulario, text="*Lote", width=75, anchor="w")
+        self.rotulo_lote.grid(row=7, column=0, sticky="w")
 
         self.campo_lote = ctk.CTkEntry(quadro_formulario, placeholder_text="")
-        self.campo_lote.grid(row=6, column=1, sticky="ew", padx=(10, 0), pady=2)
+        self.campo_lote.grid(row=7, column=1, sticky="ew", padx=(10, 0), pady=2)
 
         # =====================================================
         # TIPO DE PROJETO
         # =====================================================
 
         self.rotulo_tipo_projeto = ctk.CTkLabel(quadro_formulario, text="Tipo de projeto", width=75, anchor="w")
-        self.rotulo_tipo_projeto.grid(row=7, column=0, sticky="w")
+        self.rotulo_tipo_projeto.grid(row=8, column=0, sticky="w")
 
         tipo_projeto = [
             "Duplicação",
@@ -512,15 +728,15 @@ class AplicacaoPrincipal(ctk.CTk):
             "Restauração"
         ]
         self.campo_tipo_projeto = ctk.CTkOptionMenu(quadro_formulario, values=tipo_projeto)
-        self.campo_tipo_projeto.grid(row=7, column=1, sticky="ew", padx=(10, 0), pady=2)
+        self.campo_tipo_projeto.grid(row=8, column=1, sticky="ew", padx=(10, 0), pady=2)
         self.campo_tipo_projeto.set("Tipo...")
 
         # =====================================================
         # FASE
         # =====================================================
 
-        self.rotulo_fase = ctk.CTkLabel(quadro_formulario, text="Fase", width=75, anchor="w")
-        self.rotulo_fase.grid(row=8, column=0, sticky="w")
+        self.rotulo_fase = ctk.CTkLabel(quadro_formulario, text="*Fase", width=75, anchor="w")
+        self.rotulo_fase.grid(row=9, column=0, sticky="w")
 
         opcoes_fase = [
             "Estudos Preliminares",
@@ -528,7 +744,7 @@ class AplicacaoPrincipal(ctk.CTk):
             "Projeto Executivo"
         ]
         self.campo_fase = ctk.CTkOptionMenu(quadro_formulario, values=opcoes_fase, command=self.carregar_verificacoes)
-        self.campo_fase.grid(row=8, column=1, sticky="ew", padx=(10, 0), pady=2)
+        self.campo_fase.grid(row=9, column=1, sticky="ew", padx=(10, 0), pady=2)
         self.campo_fase.set("Fase...")
 
         # =====================================================
@@ -536,30 +752,30 @@ class AplicacaoPrincipal(ctk.CTk):
         # =====================================================
 
         self.rotulo_versao_analise = ctk.CTkLabel(quadro_formulario, text="Versão da análise", width=75, anchor="w")
-        self.rotulo_versao_analise.grid(row=9, column=0, sticky="w")
+        self.rotulo_versao_analise.grid(row=10, column=0, sticky="w")
 
         self.campo_versao_analise = ctk.CTkEntry(quadro_formulario, placeholder_text="")
-        self.campo_versao_analise.grid(row=9, column=1, sticky="ew", padx=(10, 0), pady=2)
+        self.campo_versao_analise.grid(row=10, column=1, sticky="ew", padx=(10, 0), pady=2)
 
         # =====================================================
         # NÚMERO DO ÚLTIMO RELATÓRIO
         # =====================================================
 
         self.rotulo_numero_ult_rel = ctk.CTkLabel(quadro_formulario, text="Número do último relatório", width=75, anchor="w")
-        self.rotulo_numero_ult_rel.grid(row=10, column=0, sticky="w")
+        self.rotulo_numero_ult_rel.grid(row=11, column=0, sticky="w")
 
         self.campo_numero_ult_rel = ctk.CTkEntry(quadro_formulario, placeholder_text="")
-        self.campo_numero_ult_rel.grid(row=10, column=1, sticky="ew", padx=(10, 0), pady=2)
+        self.campo_numero_ult_rel.grid(row=11, column=1, sticky="ew", padx=(10, 0), pady=2)
 
         # =====================================================
         # ANALISTA
         # =====================================================
 
-        self.rotulo_analista = ctk.CTkLabel(quadro_formulario, text="Analista", width=75, anchor="w")
-        self.rotulo_analista.grid(row=11, column=0, sticky="w")
+        self.rotulo_analista = ctk.CTkLabel(quadro_formulario, text="*Analista", width=75, anchor="w")
+        self.rotulo_analista.grid(row=12, column=0, sticky="w")
 
         self.campo_analista = ctk.CTkEntry(quadro_formulario, placeholder_text="")
-        self.campo_analista.grid(row=11, column=1, sticky="ew", padx=(10, 0), pady=2)
+        self.campo_analista.grid(row=12, column=1, sticky="ew", padx=(10, 0), pady=2)
 
     # =========================================================
     # LADO DIREITO
@@ -569,12 +785,12 @@ class AplicacaoPrincipal(ctk.CTk):
         """Monta os seletores de arquivos e os controles de execução."""
 
         # =====================================================
-        # DIRETÓRIO PROJETO
+        # ARQUIVOS PARA ANÁLISE
         # =====================================================
 
         ctk.CTkButton(
             self.quadro_direito,
-            text="Selecione os arquivos para analisar",
+            text="*Selecione os arquivos para analisar",
             command=self.escolher_pdfs,
             width=320
         ).pack(pady=(25,2))
@@ -593,7 +809,7 @@ class AplicacaoPrincipal(ctk.CTk):
 
         ctk.CTkButton(
             self.quadro_direito,
-            text="Selecionar Diretório de Resultados",
+            text="*Selecionar Diretório de Resultados",
             command=self.selecionar_dir_resultados,
             width=320
         ).pack(pady=2)
@@ -730,7 +946,7 @@ class AplicacaoPrincipal(ctk.CTk):
             self.rotulo_dir_resultados.configure(text=caminho, text_color=COR_TEXTO)
 
     # =========================================================
-    # SCRIPTS
+    # CARREGAR VERIFICAÇÕES
     # =========================================================
 
     def carregar_verificacoes(self, fase=None):
@@ -766,6 +982,7 @@ class AplicacaoPrincipal(ctk.CTk):
         rotulos = [
             self.rotulo_processo,
             self.rotulo_rodovia,
+            self.rotulo_segmento,
             self.rotulo_extensao,
             self.rotulo_lote,
             self.rotulo_fase,
@@ -855,6 +1072,74 @@ class AplicacaoPrincipal(ctk.CTk):
         return not erro
 
     # =========================================================
+    # SALVAR CAMPOS CONTRATO, PROCESSO E EDITAL
+    # =========================================================
+
+    def preencher_campo(self, campo: ctk.CTkEntry, valor: str) -> None:
+        """Substitui o conteúdo atual de um campo."""
+        campo.delete(0, "end")
+        campo.insert(0, valor)
+
+
+    def buscar_dados_do_contrato(self, evento=None) -> None:
+        """
+        Busca Processo e Edital associados ao contrato informado.
+
+        Os campos continuam sendo CTkEntry comuns e permanecem editáveis.
+        """
+        contrato = normalizar_contrato(self.campo_contrato.get())
+
+        if not contrato:
+            return
+
+        dados = carregar_json()
+        historico = dados.get("historico-contratos", {})
+
+        dados_contrato = historico.get(contrato)
+
+        if dados_contrato is None:
+            # O contrato ainda não está registrado.
+            # Limpa os dados referentes ao contrato anterior.
+            self.preencher_campo(self.campo_processo, "")
+            self.preencher_campo(self.campo_edital, "")
+            return
+
+        self.preencher_campo(
+            self.campo_processo,
+            dados_contrato.get("processo", "")
+        )
+
+        self.preencher_campo(
+            self.campo_edital,
+            dados_contrato.get("edital", "")
+        )
+
+
+    def salvar_historico_contrato(self) -> None:
+        """
+        Salva ou atualiza Processo e Edital vinculados ao contrato atual.
+        """
+        contrato = normalizar_contrato(self.campo_contrato.get())
+
+        if not contrato:
+            return
+
+        processo = self.campo_processo.get().strip()
+        edital = self.campo_edital.get().strip()
+
+        dados = carregar_json()
+        historico = dados.get("historico-contratos", {})
+
+        historico[contrato] = {
+            "processo": processo,
+            "edital": edital
+        }
+
+        salvar_config({
+            "historico-contratos": historico
+        })
+
+    # =========================================================
     # EXECUÇÃO
     # =========================================================
 
@@ -885,6 +1170,8 @@ class AplicacaoPrincipal(ctk.CTk):
         if not self.validar_campos():
             return
 
+        self.salvar_historico_contrato()
+        
         self.limpar_validacao()
         self.cancelamento_evento.clear()
         self.processando = True
@@ -906,11 +1193,12 @@ class AplicacaoPrincipal(ctk.CTk):
         # =====================================================
 
         salvar_config({
+            "contrato": self.campo_contrato.get(),
             "processo": self.campo_processo.get(),
             "edital": self.campo_edital.get(),
-            "contrato": self.campo_contrato.get(),
             "modalidade-de-contratacao":  self.campo_modalidade_de_contratacao.get(),
             "rodovia":  self.campo_rodovia.get(),
+            "segmento":  self.campo_segmento.get(),
             "extensao":  self.campo_extensao.get(),
             "lote": fc.padronizar_lote( self.campo_lote.get()),
             "tipo-de-projeto": (
