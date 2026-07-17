@@ -14,7 +14,7 @@ import pymupdf
 from openai import OpenAI
 
 import scripts.funcoes_comuns as fc
-
+from scripts.mecanismo_rag import construir_recuperador
 
 # ============================================================
 # CONFIGURAÇÃO DO LM STUDIO
@@ -34,41 +34,72 @@ client = OpenAI(
 # ============================================================
 
 PROMPT_IDENTIFICAR_ART = """
-Analise a imagem desta página de documento técnico.
+Classifique a imagem como uma página de ART ou não.
 
-Sua tarefa é verificar se a página pertence a uma:
+Uma ART é um formulário oficial de Anotação de Responsabilidade Técnica
+do sistema CONFEA/CREA.
 
-ANOTAÇÃO DE RESPONSABILIDADE TÉCNICA - ART
+REGRA ELIMINATÓRIA:
 
-Considere como indícios de ART elementos como:
+Primeiro, procure na própria página pelo menos uma destas expressões
+claramente legíveis:
 
-- expressão "Anotação de Responsabilidade Técnica";
-- sigla "ART";
-- referência ao sistema CONFEA/CREA;
-- número de ART;
-- nome ou registro de profissional;
-- número de registro profissional no CREA;
-- dados do contratante;
-- dados do proprietário;
-- dados da obra ou serviço;
-- atividade técnica;
-- entidade de classe;
-- assinatura do profissional;
-- assinatura do contratante;
-- valor da ART;
-- código de barras;
-- QR Code;
-- comprovante de pagamento da ART;
-- identificação de Conselho Regional de Engenharia e Agronomia;
-- campos característicos de formulário de ART.
+- "Anotação de Responsabilidade Técnica"
+- "ART de Obra ou Serviço"
+- "Número da ART"
+- "Nº da ART"
+- "Registro de ART"
 
-A presença isolada de um QR Code, assinatura, nome de engenheiro ou
-referência ao CREA não é suficiente para afirmar que a página é uma ART.
+Se NENHUMA dessas expressões estiver visível, responda imediatamente:
 
-FORMATO DA RESPOSTA:
+NÃO
 
-1. Se os dados indicarem que a página é uma ART, responda apenas: SIM
-2. Caso contrário, responda apenas: NÃO
+Não continue a análise e não use o contexto de engenharia para inferir
+que o documento é uma ART.
+
+Somente quando houver pelo menos uma das expressões acima, verifique se
+também existem todos estes grupos:
+
+1. Responsável técnico, com nome e registro CREA;
+2. Contratante;
+3. Obra ou serviço;
+4. Atividade técnica.
+
+Responda SIM somente quando:
+
+- existir uma identificação textual explícita de ART; E
+- os quatro grupos estiverem visíveis na página.
+
+REGRAS DE NÃO CONFUSÃO:
+
+- A palavra "engenharia" não é evidência de ART.
+- Um contrato de engenharia não é uma ART.
+- Uma apresentação de projeto não é uma ART.
+- Um relatório técnico não é uma ART.
+- Um edital ou ordem de serviço não é uma ART.
+- Nome de engenheiro não é suficiente.
+- Dados de empresa não são dados do responsável técnico.
+- Objeto do contrato não é o quadro de atividade técnica da ART.
+- Número de contrato, edital ou processo não é número de ART.
+- Não interprete a sigla "ART" dentro de outra palavra.
+- Não aceite letras separadas ou parcialmente reconhecidas como "ART".
+- Não deduza campos que não estejam escritos.
+- Em caso de texto pequeno, dúvida ou baixa legibilidade, responda NÃO.
+
+EXEMPLO NEGATIVO:
+
+Uma página com o título "APRESENTAÇÃO", contendo empresa de engenharia,
+edital, número de contrato, objeto do contrato, rodovia, segmento,
+extensão, prazo e ordem de serviço.
+
+Essa página é uma apresentação contratual, não uma ART.
+
+Resposta: NÃO
+
+Retorne exclusivamente:
+SIM
+ou
+NÃO
 """
 
 
@@ -242,12 +273,10 @@ def analisar_paginas_art(
     pdf_path = Path(caminho_pdf)
 
     resultados: list[dict[str, Any]] = []
+    paginas_com_art: list[dict[str, Any]] = []
 
     with pymupdf.open(pdf_path) as documento:
-        paginas_validas = _normalizar_paginas(
-            paginas=paginas,
-            total_paginas=len(documento),
-        )
+        paginas_validas = paginas
 
         with tempfile.TemporaryDirectory() as temp_dir:
             pasta_temporaria = Path(temp_dir)
@@ -284,31 +313,44 @@ def analisar_paginas_art(
                     modelo=modelo,
                 )
 
+                if resultado.strip().upper() == "SIM":
+                    paginas_com_art.append(numero_pagina)
+
                 resultados.append(resultado)
 
                 _verificar_interrupcao(
                     cancelamento_evento
                 )
 
-                print(resultado)
+                # se sim: adiciona a página à lista de ARTs
+                # se não: ignora a página
 
-    return resultados
+    # retorna lista com aspáginas de art
+    # print(paginas_com_art)
+    return paginas_com_art
 
-
-if __name__ == "__main__":
-    caminho_pdf = r"C:\Users\guilherme.smesquita\Downloads\1079-BR-365MG-REL.PRELIMINAR-EST.GEOLÓGICO-LOTE 01_recortado.pdf"
-
-    paginas_para_verificar = [5, 10, 11, 12, 17, 19, 20, 21, 22, 24]
+def verificar_art(caminho_pdf: str | Path, cancelamento_evento: Event | None = None, recuperador: Any | None = None) -> bool:
+    #caminho_pdf = r"C:\Users\guilherme.smesquita\Downloads\1079-BR-365MG-REL.PRELIMINAR-EST.GEOLÓGICO-LOTE 01_recortado.pdf"
 
     fc.carregar_modelo(MODELO_SCAN)
 
+    pergunta = "O documento apresenta Anotação de Responsabilidade Técnica? \nBusque por informações como:\n1. Responsável técnico\n2. Dados do contrato\n3. Dados da Obra/Serviço\n4. Atividade Técnica"
+
+    trechos_recuperados = recuperador.invoke(pergunta)
+
+    paginas_para_verificar = [documento.metadata.get('page') for documento in trechos_recuperados]
+    paginas_para_verificar = set(paginas_para_verificar)
+    paginas_para_verificar = list(paginas_para_verificar)
+
     try:
-        resultados = analisar_paginas_art(
+        paginas_art = analisar_paginas_art(
             caminho_pdf=caminho_pdf,
             paginas=paginas_para_verificar,
             dpi=200,
             modelo=MODELO_SCAN,
         )
+        print("Resultados da análise das páginas:")
+        print(paginas_art)
     finally:
         try:
             fc.descarregar_modelo(MODELO_SCAN)
@@ -317,6 +359,46 @@ if __name__ == "__main__":
                 f"Não foi possível descarregar o modelo: {erro}"
             )
 
+    return paginas_art
+
+if __name__ == "__main__":
+    caminho_pdf = r"C:\Users\guilherme.smesquita\Downloads\1079-BR-365MG-REL.PRELIMINAR-EST.GEOLÓGICO-LOTE 01_recortado.pdf"
+
+    #paginas_para_verificar = [5, 10, 11, 12, 17, 19, 20, 21, 22, 24]
+
+    fc.carregar_modelo(MODELO_SCAN)
+
+    # aqui insiro as páginas que quero verificar, e o modelo vai me retornar se é uma ART ou não
+
+    recuperador, pasta_vectorstore = construir_recuperador(
+        caminho_pdf,
+        cancelamento_evento=None)
+
+    pergunta = "O documento apresenta Anotação de Responsabilidade Técnica? \nBusque por informações como:\n1. Responsável técnico\n2. Dados do contrato\n3. Dados da Obra/Serviço\n4. Atividade Técnica"
+
+    trechos_recuperados = recuperador.invoke(pergunta)
+
+    paginas_para_verificar = [documento.metadata.get('page') for documento in trechos_recuperados]
+    paginas_para_verificar = set(paginas_para_verificar)
+    paginas_para_verificar = list(paginas_para_verificar)
+
+    try:
+        paginas_art = analisar_paginas_art(
+            caminho_pdf=caminho_pdf,
+            paginas=paginas_para_verificar,
+            dpi=200,
+            modelo=MODELO_SCAN,
+        )
+        #print("Resultados da análise das páginas:")
+        #print(paginas_art)
+    finally:
+        try:
+            fc.descarregar_modelo(MODELO_SCAN)
+        except Exception as erro:
+            print(
+                f"Não foi possível descarregar o modelo: {erro}"
+            )
+    '''
     for index, resultado in enumerate(resultados):
         print("\n" + "=" * 60)
         print(f"Resultado {index + 1}:")
@@ -325,3 +407,4 @@ if __name__ == "__main__":
 
         if "erro" in resultado:
             print(f"Erro: {resultado['erro']}")
+    '''

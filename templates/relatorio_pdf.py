@@ -327,7 +327,7 @@ def gerar_relatorio_pdf(
     # =========================================================
     # TABELA 2
     # =========================================================
-    conteudo_relatorio.append(Spacer(1, 0.4 * cm))
+    conteudo_relatorio.append(Spacer(1, 2 * cm))
 
     pontuacao_geral = (f"{contagem_pontuacao(respostas):.1f}%")
     

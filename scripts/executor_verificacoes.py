@@ -12,7 +12,7 @@ from xml.sax.saxutils import escape
 
 import scripts.funcoes_comuns as fc
 from scripts.mecanismo_rag import responder_perguntas
-from verificacao_ART import verificar_art
+from scripts.verificacao_ART import verificar_art
 
 _cancelamento_evento: Event | None = None
 

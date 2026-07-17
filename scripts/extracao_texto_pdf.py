@@ -3,6 +3,7 @@ from pathlib import Path
 import base64
 import mimetypes
 import re
+import time
 
 import pymupdf
 import tempfile
@@ -59,13 +60,14 @@ Regras obrigatórias:
 
 def extrair_com_modelo(caminho_imagem: Path, numero_pagina: int, model: str):
     print(f"Processando página {numero_pagina}: {caminho_imagem}")
-    #inicio = time.perf_counter()
+    
+    
     resposta = client.chat.completions.create(
         model=model,
         messages=[
             {
                 "role": "system",
-                "content": "Você é um motor de transcrição OCR. Sua saída deve conter apenas o texto transcrito, sem comentários."
+                "content": "Sua saída deve conter apenas o texto transcrito, sem comentários."
             },
             {
                 "role": "user",
@@ -84,14 +86,30 @@ def extrair_com_modelo(caminho_imagem: Path, numero_pagina: int, model: str):
             }
         ],
         temperature=0,
+        max_tokens=10000
+
     )
+    '''
+    inicio = time.perf_counter()
+    duracao = time.perf_counter() - inicio
+    usage = resposta.usage
+
+    print(
+    f"Página {numero_pagina} | "
+    f"tempo={duracao:.2f}s | "
+    f"entrada={getattr(usage, 'prompt_tokens', None)} | "
+    f"saída={getattr(usage, 'completion_tokens', None)} | "
+    f"total={getattr(usage, 'total_tokens', None)}"
+    )
+
     #fim = time.perf_counter()
     #tempo_total = fim - inicio
     #print(f"\nO modelo {model} demorou {tempo_total:.2f}s")
-    conteudo = resposta.choices[0].message.content
     #if numero_pagina in [19, 20, 21, 22]:
     #    print(conteudo)
     #print("-"*25)
+    '''
+    conteudo = resposta.choices[0].message.content
     return conteudo
 
 def processar_pdf_com_imagens_temporarias(
@@ -133,6 +151,8 @@ def processar_pdf_com_imagens_temporarias(
                     "resultado": resultado
                 })
                 _verificar_interrupcao(cancelamento_evento)
+
+                #print(resultado)
         finally:
             doc.close()
     return resultados
@@ -194,3 +214,4 @@ def pdf_para_documentos(caminho_pdf: str | Path, cancelamento_evento: Event | No
                 )
 
     return documentos
+
