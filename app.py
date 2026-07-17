@@ -12,6 +12,8 @@ import re
 import scripts.funcoes_comuns as fc
 import scripts.executor_verificacoes as executor_verificacoes
 import traceback
+from urllib.request import Request, urlopen
+from urllib.error import URLError, HTTPError
 
 # =========================================================
 # CONFIGURAÇÕES
@@ -21,6 +23,10 @@ ctk.set_default_color_theme("blue")
 
 COR_QUADRO = ("white", "#1f1f1f")
 COR_TEXTO = ("black", "white")
+
+URL_LM_STUDIO = "http://127.0.0.1:1234/v1"
+INTERVALO_VERIFICACAO_LM = 10_000  # milissegundos
+TIMEOUT_VERIFICACAO_LM = 3  # segundos
 
 # =========================================================
 # FUNÇÕES AUXILIARES
@@ -160,9 +166,18 @@ class AplicacaoPrincipal(ctk.CTk):
         # =====================================================
         # INTERFACE
         # =====================================================
+        self.processando = False
+        self.cancelamento_evento = threading.Event()
+        self.thread_execucao = None
+        
+        self.encerrando = False
+        self.verificacao_lm_em_andamento = False
+        self.agendamento_verificacao_lm = None
 
         self.criar_interface()
         self.carregar_dados_salvos()
+
+        self.verificar_conexao_lm_studio()
 
     def carregar_dados_salvos(self):
         """Preenche a interface com os valores persistidos em configuração."""
@@ -197,6 +212,125 @@ class AplicacaoPrincipal(ctk.CTk):
         diretorio = dados.get("diretorio-resultados")
         if diretorio:
             self.rotulo_dir_resultados.configure(text=diretorio)
+
+    # =========================================================
+    # CONEXÃO LM STUDIO
+    # =========================================================
+
+    def consultar_lm_studio(self) -> tuple[bool, str]:
+        """
+        Consulta o endpoint de modelos do LM Studio.
+
+        Retorna:
+            tuple[bool, str]:
+                - True quando o servidor respondeu corretamente.
+                - False quando não foi possível estabelecer comunicação.
+        """
+
+        url_modelos = f"{URL_LM_STUDIO.rstrip('/')}/models"
+
+        requisicao = Request(
+            url_modelos,
+            method="GET",
+            headers={
+                "Authorization": "Bearer lm-studio",
+                "Accept": "application/json"
+            }
+        )
+
+        try:
+            with urlopen(
+                requisicao,
+                timeout=TIMEOUT_VERIFICACAO_LM
+            ) as resposta:
+
+                if 200 <= resposta.status < 300:
+                    return True, "LM Studio conectado"
+
+                return False, f"LM Studio respondeu com status {resposta.status}"
+
+        except HTTPError as erro:
+            # O servidor respondeu, mas houve um erro HTTP.
+            return False, f"Erro HTTP do LM Studio: {erro.code}"
+
+        except URLError:
+            # Normalmente ocorre quando o LM Studio está fechado
+            # ou o servidor local ainda não foi iniciado.
+            return False, "LM Studio desconectado"
+
+        except TimeoutError:
+            return False, "Tempo de conexão esgotado"
+
+        except Exception as erro:
+            print(f"Erro ao verificar LM Studio: {erro}")
+            return False, "Erro ao verificar LM Studio"
+
+
+    def verificar_conexao_lm_studio(self):
+        """
+        Inicia uma verificação em segundo plano.
+
+        Esse método não bloqueia a interface gráfica.
+        """
+
+        if self.encerrando:
+            return
+
+        # Impede duas verificações simultâneas.
+        if self.verificacao_lm_em_andamento:
+            return
+
+        self.verificacao_lm_em_andamento = True
+
+        self.rotulo_status_lm.configure(
+            text="● Verificando conexão com o LM Studio...",
+            text_color="#d97706"
+        )
+
+        def executar_verificacao():
+            conectado, mensagem = self.consultar_lm_studio()
+
+            if self.encerrando:
+                return
+
+            self.after(
+                0,
+                lambda: self.atualizar_status_lm(
+                    conectado,
+                    mensagem
+                )
+            )
+
+        threading.Thread(
+            target=executar_verificacao,
+            daemon=True
+        ).start()
+
+
+    def atualizar_status_lm(self, conectado: bool, mensagem: str):
+        """Atualiza visualmente o indicador de conexão."""
+
+        self.verificacao_lm_em_andamento = False
+
+        if self.encerrando:
+            return
+
+        if conectado:
+            self.rotulo_status_lm.configure(
+                text=f"● {mensagem}",
+                text_color="#16a34a"
+            )
+        else:
+            self.rotulo_status_lm.configure(
+                text=f"● {mensagem}",
+                text_color="#dc2626"
+            )
+
+        # Agenda uma nova verificação.
+        self.agendamento_verificacao_lm = self.after(
+            INTERVALO_VERIFICACAO_LM,
+            self.verificar_conexao_lm_studio
+        )
 
     # =========================================================
     # INTERFACE
@@ -539,6 +673,19 @@ class AplicacaoPrincipal(ctk.CTk):
 
     def campos_inferior(self):
         """Monta o rodapé e o controle de tema."""
+        self.rotulo_status_lm = ctk.CTkLabel(
+            self.quadro_inferior,
+            text="● Verificando conexão com o LM Studio...",
+            text_color="#d97706",
+            font=("Arial", 12)
+        )
+
+        self.rotulo_status_lm.pack(
+            side="left",
+            padx=15,
+            pady=2
+        )
+        
         self.botao_tema = ctk.CTkButton(
             self.quadro_inferior,
             text="🌙 Modo Escuro",
@@ -864,12 +1011,26 @@ class AplicacaoPrincipal(ctk.CTk):
 
 
     def ao_fechar(self):
-        """Cancela a execucao ativa e descarrega modelos antes de fechar."""
+        self.encerrando = True
+
+        if self.agendamento_verificacao_lm is not None:
+            try:
+                self.after_cancel(self.agendamento_verificacao_lm)
+            except Exception:
+                pass
+
+            self.agendamento_verificacao_lm = None
+
         if self.processando:
             self.cancelamento_evento.set()
 
         executor_verificacoes.definir_cancelamento_evento(None)
-        fc.descarregar_modelos_carregados()
+
+        try:
+            fc.descarregar_modelos_carregados()
+        except Exception as erro:
+            print(f"Erro ao descarregar modelos: {erro}")
+
         self.destroy()
 
 
