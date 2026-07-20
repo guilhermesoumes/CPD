@@ -31,20 +31,7 @@ TIMEOUT_VERIFICACAO_LM = 3  # segundos
 # =========================================================
 # FUNÇÕES AUXILIARES
 # =========================================================
-def caminho_dados_usuario() -> Path:
-    """Retorna uma pasta persistente para os dados da aplicação."""
-    if sys.platform == "win32":
-        pasta_base = Path.home() / "AppData" / "Local"
-    else:
-        pasta_base = Path.home() / ".local" / "share"
-
-    pasta_aplicacao = pasta_base / "CPD-DNIT"
-    pasta_aplicacao.mkdir(parents=True, exist_ok=True)
-
-    return pasta_aplicacao
-
-
-ARQUIVO_CONFIGURACAO = caminho_dados_usuario() / "config.json"
+ARQUIVO_CONFIGURACAO = fc.caminho_configuracao_usuario()
 
 
 def caminho_arquivo(caminho_relativo):
@@ -52,9 +39,6 @@ def caminho_arquivo(caminho_relativo):
 
     caminho_base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
     return caminho_base / caminho_relativo
-
-# ARQUIVO_CONFIGURACAO = caminho_arquivo("config.json")
-
 
 def salvar_json(chave, valor):
     """Atualiza uma única chave no arquivo local de configuração."""
@@ -178,7 +162,7 @@ class AplicacaoPrincipal(ctk.CTk):
         super().__init__()
 
         self.tema_atual = "light"
-        self.geometry("1000x600")
+        self.geometry("1000x680")
         self.title("CPD-DNIT")
         self.resizable(True, True)
         self.processando = False
@@ -777,6 +761,34 @@ class AplicacaoPrincipal(ctk.CTk):
         self.campo_analista = ctk.CTkEntry(quadro_formulario, placeholder_text="")
         self.campo_analista.grid(row=12, column=1, sticky="ew", padx=(10, 0), pady=2)
 
+        # =====================================================
+        # MENSAGEM CAMPOS OBRIGATÓRIOS
+        # =====================================================
+
+        self.mensagem_campos_obrigatorios = ctk.CTkLabel(
+            self.quadro_esquerdo,
+            text="* Campos obrigatórios",
+            wraplength=350,
+            anchor="w",
+        )
+
+        self.mensagem_campos_obrigatorios.pack(
+            fill="x",
+            padx=35,
+            pady=(30, 10)
+        )
+
+        # =====================================================
+        # BOTÃO LIMPAR CAMPOS
+        # =====================================================
+
+        self.botao_limpar = ctk.CTkButton(
+            self.quadro_esquerdo,
+            text="Limpar campos",
+            command=self.limpar_campos,
+            width=320
+        ).pack(pady=(30,2))
+
     # =========================================================
     # LADO DIREITO
     # =========================================================
@@ -1138,6 +1150,72 @@ class AplicacaoPrincipal(ctk.CTk):
         salvar_config({
             "historico-contratos": historico
         })
+
+    # =========================================================
+    # LIMPAR CAMPOS
+    # =========================================================
+
+    def limpar_campos(self):
+        """Limpa todos os campos e seleções preenchidos na interface."""
+
+        if self.processando:
+            messagebox.showwarning(
+                "Operação em andamento",
+                "Não é possível limpar os campos durante o processamento."
+            )
+            return
+
+        confirmar = messagebox.askyesno(
+            "Limpar campos",
+            "Deseja realmente limpar todos os campos preenchidos?"
+        )
+
+        if not confirmar:
+            return
+
+        # Fecha a janela de sugestões do contrato, caso esteja aberta.
+        self.fechar_sugestoes_contrato()
+
+        # Campos de texto.
+        campos_texto = [
+            self.campo_contrato,
+            self.campo_processo,
+            self.campo_edital,
+            self.campo_modalidade_de_contratacao,
+            self.campo_rodovia,
+            self.campo_segmento,
+            self.campo_extensao,
+            self.campo_lote,
+            self.campo_versao_analise,
+            self.campo_numero_ult_rel,
+            self.campo_analista
+        ]
+
+        for campo in campos_texto:
+            campo.delete(0, "end")
+
+        # Menus de seleção.
+        self.campo_tipo_projeto.set("Tipo...")
+        self.campo_fase.set("Fase...")
+        self.lista_verificacoes.configure(values=[])
+        self.lista_verificacoes.set("Selecione...")
+
+        # Arquivos e diretório selecionados.
+        self.rotulo_arquivos_analise.configure(
+            text="Nenhum arquivo selecionado",
+            text_color=COR_TEXTO
+        )
+
+        self.rotulo_dir_resultados.configure(
+            text="Nenhum diretório selecionado",
+            text_color=COR_TEXTO
+        )
+
+        # Remove mensagens e destaques de validação.
+        self.limpar_validacao()
+
+        # Retorna o cursor ao primeiro campo.
+        self.campo_contrato.focus_set()
 
     # =========================================================
     # EXECUÇÃO

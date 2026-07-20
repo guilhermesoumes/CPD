@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import re
 import shutil
-
 from pathlib import Path
 from threading import Event
+from typing import Any
 
 
 from langchain_chroma import Chroma
@@ -16,13 +16,14 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from scripts.extracao_texto_pdf import pdf_para_documentos
 
 import scripts.funcoes_comuns as fc
+from scripts.configuracao import (
+    CHAVE_API,
+    MODELO_CONVERSA,
+    MODELO_EMBEDDING,
+    URL_API_OPENAI,
+)
 
 # configuração do LM Studio
-URL_BASE_API_PADRAO = "http://127.0.0.1:1234/v1"
-CHAVE_API_PADRAO = "lm-studio"
-MODELO_VETORIZACAO_PADRAO = "text-embedding-qwen3-embedding-0.6b"
-MODELO_CONVERSA_PADRAO = "google/gemma-3n-e4b"
-
 # prompt
 PROMPT = """
 Você é um especialista em análise de documentos técnicos de engenharia.
@@ -67,8 +68,7 @@ def _normalizar_nome_vectorstore(caminho: str | Path) -> str:
 
 
 def _verificar_interrupcao(cancelamento_evento: Event | None) -> None:
-    if cancelamento_evento and cancelamento_evento.is_set():
-        raise fc.ProcessamentoInterrompido("Processamento interrompido pelo usuario.")
+    fc.verificar_interrupcao(cancelamento_evento)
 
 # recebe doc langchain, define caminho do vectorstore e define os parâmetros do recuperador
 def construir_recuperador(
@@ -91,9 +91,9 @@ def construir_recuperador(
 
     # cria os chunks
     vetores_representacao = OpenAIEmbeddings(
-        model=MODELO_VETORIZACAO_PADRAO,
-        openai_api_base=URL_BASE_API_PADRAO,
-        openai_api_key=CHAVE_API_PADRAO,
+        model=MODELO_EMBEDDING,
+        openai_api_base=URL_API_OPENAI,
+        openai_api_key=CHAVE_API,
         check_embedding_ctx_length=False,
     )
 
@@ -117,9 +117,9 @@ def construir_recuperador(
 # recebe embeddings, define modelo de LLM, cria estrutura para perguntas e ativa o LLM
 def responder_perguntas(
     caminho_pdf: str | Path,
-    perguntas: list[dict[str:str, str:str]],
+    perguntas: list[dict[str, str]],
     cancelamento_evento: Event | None = None,
-    ) -> list[str]:
+    ) -> tuple[list[str], Any]:
     # recebe o banco de vetores e passa o prompt
     recuperador, pasta_vectorstore = construir_recuperador(
         caminho_pdf,
@@ -129,9 +129,9 @@ def responder_perguntas(
 
     # define modelo de LLM
     modelo_linguagem = ChatOpenAI(
-        model=MODELO_CONVERSA_PADRAO,
-        openai_api_base=URL_BASE_API_PADRAO,
-        openai_api_key=CHAVE_API_PADRAO,
+        model=MODELO_CONVERSA,
+        openai_api_base=URL_API_OPENAI,
+        openai_api_key=CHAVE_API,
         temperature=0,
     )
     cadeia = instrucoes | modelo_linguagem | StrOutputParser()
@@ -154,13 +154,13 @@ def responder_perguntas(
             _verificar_interrupcao(cancelamento_evento)
     finally:
         try:
-            fc.descarregar_modelo(MODELO_VETORIZACAO_PADRAO)
+            fc.descarregar_modelo(MODELO_EMBEDDING)
             print('modelo embedding descarregado')
         except Exception as erro:
             print(f"Não foi possível descarregar o modelo embedding: {erro}")
 
         try:
-            fc.descarregar_modelo(MODELO_CONVERSA_PADRAO)
+            fc.descarregar_modelo(MODELO_CONVERSA)
             print('modelo de consulta descarregado')
         except Exception as erro:
             print(f"Não foi possível descarregar o modelo de consulta: {erro}")

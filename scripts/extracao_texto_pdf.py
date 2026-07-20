@@ -1,34 +1,27 @@
-from openai import OpenAI
-from pathlib import Path
 import base64
 import mimetypes
 import re
-import time
-
-import pymupdf
 import tempfile
+from collections import Counter
 from pathlib import Path
 from threading import Event
 
+import pymupdf
 from langchain_core.documents import Document
-from collections import Counter
+from openai import OpenAI
 
 import scripts.funcoes_comuns as fc
+from scripts.configuracao import CHAVE_API, MODELO_OCR, URL_API_OPENAI
 
 # configuração do LM Studio
-URL_BASE_API_PADRAO = "http://127.0.0.1:1234/v1"
-CHAVE_API_PADRAO = "lm-studio"
-MODELO_SCAN = "glm-ocr"
-
 client = OpenAI(
-    base_url=URL_BASE_API_PADRAO,
-    api_key=CHAVE_API_PADRAO  # pode ser qualquer texto no LM Studio local
+    base_url=URL_API_OPENAI,
+    api_key=CHAVE_API,
 )
 
 
 def _verificar_interrupcao(cancelamento_evento: Event | None) -> None:
-    if cancelamento_evento and cancelamento_evento.is_set():
-        raise fc.ProcessamentoInterrompido("Processamento interrompido pelo usuario.")
+    fc.verificar_interrupcao(cancelamento_evento)
 
 def imagem_para_data_url(caminho_imagem: str) -> str:
     caminho = Path(caminho_imagem)
@@ -58,12 +51,12 @@ Regras obrigatórias:
 - Se algum trecho estiver ilegível, escreva [ilegível].
 """
 
-def extrair_com_modelo(caminho_imagem: Path, numero_pagina: int, model: str):
+def extrair_com_modelo(caminho_imagem: Path, numero_pagina: int, modelo: str) -> str:
     print(f"Processando página {numero_pagina}: {caminho_imagem}")
     
     
     resposta = client.chat.completions.create(
-        model=model,
+        model=modelo,
         messages=[
             {
                 "role": "system",
@@ -116,7 +109,7 @@ def processar_pdf_com_imagens_temporarias(
     caminho_pdf: str,
     dpi: int = 200,
     formato: str = "png",
-    model:str = MODELO_SCAN,
+    modelo: str = MODELO_OCR,
     cancelamento_evento: Event | None = None,
     ):
     pdf_path = Path(caminho_pdf)
@@ -143,7 +136,7 @@ def processar_pdf_com_imagens_temporarias(
                 resultado = extrair_com_modelo(
                     caminho_imagem=caminho_imagem,
                     numero_pagina=numero_pagina,
-                    model=model
+                    modelo=modelo,
                 )
                 resultados.append({
                     "pagina": numero_pagina,
@@ -162,7 +155,7 @@ def processar_pdf_com_imagens_temporarias(
 def pdf_para_documentos(caminho_pdf: str | Path, cancelamento_evento: Event | None = None) -> list[Document]:
     _verificar_interrupcao(cancelamento_evento)
 
-    fc.carregar_modelo(MODELO_SCAN)
+    fc.carregar_modelo(MODELO_OCR)
 
     try:
         lista_resultados = processar_pdf_com_imagens_temporarias(
@@ -171,7 +164,7 @@ def pdf_para_documentos(caminho_pdf: str | Path, cancelamento_evento: Event | No
         )
     finally:
         try:
-            fc.descarregar_modelo(MODELO_SCAN)
+            fc.descarregar_modelo(MODELO_OCR)
         except Exception as erro:
             print(f"Nao foi possivel descarregar o modelo de extracao: {erro}")
 

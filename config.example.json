@@ -6,11 +6,13 @@
     "contrato": "",
     "modalidade-de-contratacao": "",
     "rodovia": "000/UF",
+    "segmento": "",
     "extensao": "",
     "lote": "01",
     "tipo-de-projeto": "Tipo...",
     "fase-de-projeto": "Fase...",
     "numero-analise": "",
     "numero-ult-relatorio": "",
-    "analista": ""
+    "analista": "",
+    "historico-contratos": {}
 }

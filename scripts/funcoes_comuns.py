@@ -6,25 +6,46 @@ import json
 import re
 import sys
 from pathlib import Path
+from threading import Event
 
-from urllib.parse import urlparse
 import requests
-
-import subprocess
 
 from typing import Any
 
-RAIZ_PROJETO = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
-MODELOS_CONHECIDOS = (
-    "glm-ocr",
-    "text-embedding-qwen3-embedding-0.6b",
-    "google/gemma-3n-e4b",
+from scripts.configuracao import (
+    CHAVE_API,
+    CONTEXTO_MODELO,
+    MODELOS_CONHECIDOS,
+    TIMEOUT_MODELO,
+    URL_API_MODELOS,
 )
+
+RAIZ_PROJETO = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
 MODELOS_CARREGADOS: set[str] = set()
 
 
 class ProcessamentoInterrompido(Exception):
     """Indica que o usuario solicitou a interrupcao do processamento."""
+
+
+def verificar_interrupcao(cancelamento_evento: Event | None) -> None:
+    """Interrompe o fluxo quando o evento cooperativo estiver sinalizado."""
+
+    if cancelamento_evento and cancelamento_evento.is_set():
+        raise ProcessamentoInterrompido("Processamento interrompido pelo usuario.")
+
+
+def caminho_configuracao_usuario() -> Path:
+    """Retorna o arquivo persistente de configuracao da aplicacao."""
+
+    if sys.platform == "win32":
+        pasta_base = Path.home() / "AppData" / "Local"
+    else:
+        pasta_base = Path.home() / ".local" / "share"
+
+    pasta_aplicacao = pasta_base / "CPD-DNIT"
+    pasta_aplicacao.mkdir(parents=True, exist_ok=True)
+    return pasta_aplicacao / "config.json"
 
 # retorna caminho da pasta ou arquivo considerando também pacotes PyInstaller
 def resolve_caminho(caminho_relativo: str) -> str:
@@ -79,28 +100,29 @@ def proximo_nome_relatorio(diretorio_saida: str | Path, ano: str, codigo_rodovia
     return f"RAC-{proxima_versao:03d}-{ano}_BR-{codigo_rodovia}_{codigo_disciplina}_LT-{codigo_lote}"
 
 def carregar_modelo(
-        modelo: str,
-        ) -> dict[str, Any]:
+    modelo: str,
+    timeout: int = TIMEOUT_MODELO,
+) -> dict[str, Any]:
     """
     Carrega um modelo no LM Studio usando a API REST.
     """
 
     headers = {
-        "Authorization": "Bearer lm-studio",
+        "Authorization": f"Bearer {CHAVE_API}",
         "Content-Type": "application/json",
         }
 
     dados: dict[str, Any] = {
         "model": modelo,
-        "context_length": 20000,
+        "context_length": CONTEXTO_MODELO,
         "echo_load_config": True,
     }
 
     resposta = requests.post(
-        f"http://127.0.0.1:1234/api/v1/models/load",
+        f"{URL_API_MODELOS}/load",
         headers=headers,
         json=dados,
-        timeout=300
+        timeout=timeout,
     )
 
     resposta.raise_for_status()
@@ -108,15 +130,15 @@ def carregar_modelo(
     return resposta.json()
 
 def descarregar_modelo(
-        modelo: str,
-        timeout: int = 300,
-        ) -> dict[str, Any]:
+    modelo: str,
+    timeout: int = TIMEOUT_MODELO,
+) -> dict[str, Any]:
     """
     Descarrega um modelo no LM Studio usando a API REST.
     """
 
     headers = {
-        "Authorization": "Bearer lm-studio",
+        "Authorization": f"Bearer {CHAVE_API}",
         "Content-Type": "application/json",
         }
 
@@ -125,7 +147,7 @@ def descarregar_modelo(
         }
 
     resposta = requests.post(
-        f"http://127.0.0.1:1234/api/v1/models/unload",
+        f"{URL_API_MODELOS}/unload",
         headers=headers,
         json=dados,
         timeout=timeout

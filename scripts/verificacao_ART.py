@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import base64
-import json
 import mimetypes
-import re
 import tempfile
 
 from pathlib import Path
@@ -14,19 +12,16 @@ import pymupdf
 from openai import OpenAI
 
 import scripts.funcoes_comuns as fc
+from scripts.configuracao import CHAVE_API, MODELO_ART, URL_API_OPENAI
 from scripts.mecanismo_rag import construir_recuperador
 
 # ============================================================
 # CONFIGURAÇÃO DO LM STUDIO
 # ============================================================
 
-URL_BASE_API_PADRAO = "http://127.0.0.1:1234/v1"
-CHAVE_API_PADRAO = "lm-studio"
-MODELO_SCAN = "google/gemma-4-e2b"
-
 client = OpenAI(
-    base_url=URL_BASE_API_PADRAO,
-    api_key=CHAVE_API_PADRAO,
+    base_url=URL_API_OPENAI,
+    api_key=CHAVE_API,
 )
 
 # ============================================================
@@ -110,10 +105,7 @@ NÃO
 def _verificar_interrupcao(
     cancelamento_evento: Event | None,
 ) -> None:
-    if cancelamento_evento and cancelamento_evento.is_set():
-        raise fc.ProcessamentoInterrompido(
-            "Processamento interrompido pelo usuário."
-        )
+    fc.verificar_interrupcao(cancelamento_evento)
 
 
 def imagem_para_data_url(caminho_imagem: str | Path) -> str:
@@ -143,8 +135,8 @@ def imagem_para_data_url(caminho_imagem: str | Path) -> str:
 def verificar_imagem_art(
     caminho_imagem: str | Path,
     numero_pagina: int,
-    modelo: str = MODELO_SCAN,
-    ) -> dict[str, Any]:
+    modelo: str = MODELO_ART,
+    ) -> str:
     """
     Envia uma imagem ao modelo e verifica se ela corresponde
     a uma página de ART.
@@ -241,9 +233,9 @@ def analisar_paginas_art(
     caminho_pdf: str | Path,
     paginas: list[int],
     dpi: int = 200,
-    modelo: str = MODELO_SCAN,
+    modelo: str = MODELO_ART,
     cancelamento_evento: Event | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[int]:
     """
     Transforma apenas as páginas informadas em imagens temporárias
     e consulta o modelo para verificar se elas são páginas de ART.
@@ -272,8 +264,7 @@ def analisar_paginas_art(
 
     pdf_path = Path(caminho_pdf)
 
-    resultados: list[dict[str, Any]] = []
-    paginas_com_art: list[dict[str, Any]] = []
+    paginas_com_art: list[int] = []
 
     with pymupdf.open(pdf_path) as documento:
         paginas_validas = paginas
@@ -316,8 +307,6 @@ def analisar_paginas_art(
                 if resultado.strip().upper() == "SIM":
                     paginas_com_art.append(numero_pagina)
 
-                resultados.append(resultado)
-
                 _verificar_interrupcao(
                     cancelamento_evento
                 )
@@ -329,10 +318,20 @@ def analisar_paginas_art(
     # print(paginas_com_art)
     return paginas_com_art
 
-def verificar_art(caminho_pdf: str | Path, cancelamento_evento: Event | None = None, recuperador: Any | None = None) -> bool:
+def verificar_art(
+    caminho_pdf: str | Path,
+    cancelamento_evento: Event | None = None,
+    recuperador: Any | None = None,
+) -> list[int]:
     #caminho_pdf = r"C:\Users\guilherme.smesquita\Downloads\1079-BR-365MG-REL.PRELIMINAR-EST.GEOLÓGICO-LOTE 01_recortado.pdf"
 
-    fc.carregar_modelo(MODELO_SCAN)
+    fc.carregar_modelo(MODELO_ART)
+
+    if recuperador is None:
+        recuperador, _ = construir_recuperador(
+            caminho_pdf,
+            cancelamento_evento=cancelamento_evento,
+        )
 
     pergunta = "O documento apresenta Anotação de Responsabilidade Técnica? \nBusque por informações como:\n1. Responsável técnico\n2. Dados do contrato\n3. Dados da Obra/Serviço\n4. Atividade Técnica"
 
@@ -347,64 +346,17 @@ def verificar_art(caminho_pdf: str | Path, cancelamento_evento: Event | None = N
             caminho_pdf=caminho_pdf,
             paginas=paginas_para_verificar,
             dpi=200,
-            modelo=MODELO_SCAN,
+            modelo=MODELO_ART,
+            cancelamento_evento=cancelamento_evento,
         )
         print("Resultados da análise das páginas:")
         print(paginas_art)
     finally:
         try:
-            fc.descarregar_modelo(MODELO_SCAN)
+            fc.descarregar_modelo(MODELO_ART)
         except Exception as erro:
             print(
                 f"Não foi possível descarregar o modelo: {erro}"
             )
 
     return paginas_art
-
-if __name__ == "__main__":
-    caminho_pdf = r"C:\Users\guilherme.smesquita\Downloads\1079-BR-365MG-REL.PRELIMINAR-EST.GEOLÓGICO-LOTE 01_recortado.pdf"
-
-    #paginas_para_verificar = [5, 10, 11, 12, 17, 19, 20, 21, 22, 24]
-
-    fc.carregar_modelo(MODELO_SCAN)
-
-    # aqui insiro as páginas que quero verificar, e o modelo vai me retornar se é uma ART ou não
-
-    recuperador, pasta_vectorstore = construir_recuperador(
-        caminho_pdf,
-        cancelamento_evento=None)
-
-    pergunta = "O documento apresenta Anotação de Responsabilidade Técnica? \nBusque por informações como:\n1. Responsável técnico\n2. Dados do contrato\n3. Dados da Obra/Serviço\n4. Atividade Técnica"
-
-    trechos_recuperados = recuperador.invoke(pergunta)
-
-    paginas_para_verificar = [documento.metadata.get('page') for documento in trechos_recuperados]
-    paginas_para_verificar = set(paginas_para_verificar)
-    paginas_para_verificar = list(paginas_para_verificar)
-
-    try:
-        paginas_art = analisar_paginas_art(
-            caminho_pdf=caminho_pdf,
-            paginas=paginas_para_verificar,
-            dpi=200,
-            modelo=MODELO_SCAN,
-        )
-        #print("Resultados da análise das páginas:")
-        #print(paginas_art)
-    finally:
-        try:
-            fc.descarregar_modelo(MODELO_SCAN)
-        except Exception as erro:
-            print(
-                f"Não foi possível descarregar o modelo: {erro}"
-            )
-    '''
-    for index, resultado in enumerate(resultados):
-        print("\n" + "=" * 60)
-        print(f"Resultado {index + 1}:")
-        print('resultado da página', paginas_para_verificar[index])
-        print(resultado)
-
-        if "erro" in resultado:
-            print(f"Erro: {resultado['erro']}")
-    '''

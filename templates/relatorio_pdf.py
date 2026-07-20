@@ -18,13 +18,8 @@ from datetime import datetime
 
 import scripts.funcoes_comuns as fc
 
-from scripts.verificacao_qrcode import _verificar_interrupcao
-from scripts.executor_verificacoes import _verificar_interrupcao
-from scripts.verificacao_qrcode import pagina_tem_qrcode
 
 
-RAIZ_PROJETO = Path(fc.resolve_caminho("."))
-ARQUIVO_CONFIGURACAO = RAIZ_PROJETO / "config.json"
 DIRETORIO_FONTES = Path(__file__).resolve().parent / "fonts"
 
 
@@ -43,7 +38,7 @@ def _registrar_fontes() -> tuple[str, str]:
 def _metadados_projeto() -> dict:
     """Carrega e organiza os metadados exibidos no relatório."""
 
-    dados = fc.carregar_configuracao(str(ARQUIVO_CONFIGURACAO))
+    dados = fc.carregar_configuracao(fc.caminho_configuracao_usuario())
     return {
         "Contrato": dados.get("contrato", ""),
         "Processo": dados.get("processo", ""),
@@ -165,10 +160,8 @@ def _linhas_perguntas(perguntas: list[str], respostas: list[str], estilos: dict,
     # títulos das tabelas
     linhas = [["Pergunta", "Resposta", "Trecho que comprova", "Página"]]
     
-    pares = list(zip(perguntas or [], respostas or []))
     
     # última pergunta e resposta dizem respeito a ART
-    ultimo_par = pares[-1]
 
     for pergunta, resposta in zip(perguntas or [], respostas or []): # passando o par (pergunta, trecho que comprova)
 
@@ -185,35 +178,6 @@ def _linhas_perguntas(perguntas: list[str], respostas: list[str], estilos: dict,
         # transformação de cada item (trecho) da lista da resposta com os trechos em uma string com todos os trechos organizados
         trechos_txt = "\n".join(f"• {item['trecho']}" for item in evidencias)
         paginas_txt = _formatar_lista_paginas([item["pagina"] for item in evidencias])
-
-        # caminho do arquivo PDF
-        caminho_pdf = relatorio_analisado
-
-        # lista com páginas que tem qr code
-        paginas_com_qrcode = []
-
-        '''
-        # se pergunta e resposta forem sobre ART
-        if (pergunta, resposta) == ultimo_par:
-
-            # lista com as páginas onde 
-            paginas_qrcode = [int(item["pagina"]) for item in evidencias]
-            paginas_qrcode = set(paginas_qrcode)
-            paginas_qrcode = list(paginas_qrcode)
-
-            print("paginas_qrcode: ", paginas_qrcode)
-            #paginas_qrcode = _paginas_QRCode([item["pagina"] for item in paginas_txt])
-            #print("consultar páginas: ", paginas_qrcode)
-
-            for pagina in paginas_qrcode:
-                _verificar_interrupcao()
-                print("caminho_pdf: ", caminho_pdf)
-                print("pagina: ", pagina)
-                if pagina_tem_qrcode(caminho_pdf= caminho_pdf, numero_pagina= pagina):
-                    paginas_com_qrcode.append(pagina)
-            
-            paginas_txt = _formatar_lista_paginas(paginas_com_qrcode)
-        '''
 
         linhas.append([
             Paragraph(escape(pergunta), estilos["cell"]),
