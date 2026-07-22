@@ -199,6 +199,7 @@ class AplicacaoPrincipal(ctk.CTk):
         self.encerrando = False
         self.verificacao_lm_em_andamento = False
         self.agendamento_verificacao_lm = None
+        self.lm_studio_conectado = False
 
         self.janela_sugestoes_contrato = None
         self.selecionando_sugestao_contrato = False
@@ -341,6 +342,7 @@ class AplicacaoPrincipal(ctk.CTk):
         """Atualiza visualmente o indicador de conexão."""
 
         self.verificacao_lm_em_andamento = False
+        self.lm_studio_conectado = conectado
 
         if self.encerrando:
             return
@@ -1320,6 +1322,21 @@ class AplicacaoPrincipal(ctk.CTk):
 
     def executar_verificacao(self):
         """Persiste o formulário e executa a verificação em segundo plano."""
+        if not self.lm_studio_conectado:
+            self.atualizar_status_processamento({
+                "etapa": "LM Studio desconectado",
+                "mensagem": (
+                    "Abra o LM Studio e inicie o servidor local para continuar. "
+                    "Depois, tente executar novamente."
+                ),
+            })
+            self.rotulo_erro.configure(
+                text="É necessário abrir o LM Studio para executar a verificação.",
+                text_color="red",
+            )
+            self.verificar_conexao_lm_studio()
+            return
+
         if not self.validar_campos():
             return
 
