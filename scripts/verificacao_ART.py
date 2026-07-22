@@ -14,6 +14,7 @@ from openai import OpenAI
 import scripts.funcoes_comuns as fc
 from scripts.configuracao import CHAVE_API, MODELO_ART, URL_API_OPENAI
 from scripts.mecanismo_rag import construir_recuperador
+from scripts.status_processamento import informar
 
 # ============================================================
 # CONFIGURAÇÃO DO LM STUDIO
@@ -272,9 +273,16 @@ def analisar_paginas_art(
         with tempfile.TemporaryDirectory() as temp_dir:
             pasta_temporaria = Path(temp_dir)
 
-            for numero_pagina in paginas_validas:
+            total_candidatas = len(paginas_validas)
+            for indice_candidata, numero_pagina in enumerate(paginas_validas, start=1):
                 _verificar_interrupcao(
                     cancelamento_evento
+                )
+                informar(
+                    "Verificação visual de ART",
+                    f"Analisando página candidata {indice_candidata} de {total_candidatas}",
+                    arquivo=pdf_path.name,
+                    pagina=numero_pagina,
                 )
 
                 # PyMuPDF usa índice iniciado em zero.

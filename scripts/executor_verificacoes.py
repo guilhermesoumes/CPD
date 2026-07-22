@@ -13,6 +13,7 @@ from typing import Literal, TypedDict
 import scripts.funcoes_comuns as fc
 from scripts.mecanismo_rag import responder_perguntas
 from scripts.verificacao_ART import verificar_art
+from scripts.status_processamento import informar
 
 
 class PerguntaVerificacao(TypedDict):
@@ -119,9 +120,15 @@ def executar_verificacao_conteudo(configuracao: ConfiguracaoVerificacao) -> None
     pasta_vectorstores = Path(fc.resolve_caminho("vectorstores"))
     shutil.rmtree(pasta_vectorstores, ignore_errors=True)
 
-    for arquivo_pdf in arquivos_pdf:
+    total_arquivos = len(arquivos_pdf)
+    for indice_arquivo, arquivo_pdf in enumerate(arquivos_pdf, start=1):
         _verificar_interrupcao()
         inicio = time.perf_counter()
+        informar(
+            "Preparação",
+            f"Processando arquivo {indice_arquivo} de {total_arquivos}",
+            arquivo=Path(arquivo_pdf).name,
+        )
 
         # A configuracao declarativa permanece intacta entre PDFs e execucoes.
         perguntas = [dict(pergunta) for pergunta in configuracao.perguntas]
@@ -146,6 +153,7 @@ def executar_verificacao_conteudo(configuracao: ConfiguracaoVerificacao) -> None
             f"{duracao_minutos:.2f}min"
         )
 
+        informar("Geração do relatório", "Montando o arquivo RAC", arquivo=Path(arquivo_pdf).name)
         _gerar_relatorio(
             configuracao,
             caminho_pdf=str(
@@ -160,4 +168,9 @@ def executar_verificacao_conteudo(configuracao: ConfiguracaoVerificacao) -> None
             tempo_de_processamento=tempo_processamento,
             perguntas=[item["pergunta"] for item in perguntas],
             respostas=respostas,
+        )
+        informar(
+            "Arquivo concluído",
+            f"Arquivo {indice_arquivo} de {total_arquivos} concluído",
+            arquivo=Path(arquivo_pdf).name,
         )

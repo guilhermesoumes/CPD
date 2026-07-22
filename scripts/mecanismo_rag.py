@@ -16,6 +16,7 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from scripts.extracao_texto_pdf import pdf_para_documentos
 
 import scripts.funcoes_comuns as fc
+from scripts.status_processamento import informar
 from scripts.configuracao import (
     CHAVE_API,
     MODELO_CONVERSA,
@@ -76,6 +77,8 @@ def construir_recuperador(
     raiz_persistencia: str | Path = "vectorstores",
     cancelamento_evento: Event | None = None,
 ):
+    nome_arquivo = Path(caminho_pdf).name
+    informar("Leitura visual do PDF", "Preparando páginas para leitura", arquivo=nome_arquivo)
     # recebe texto do pdf
     documentos = pdf_para_documentos(caminho_pdf, cancelamento_evento=cancelamento_evento)
     _verificar_interrupcao(cancelamento_evento)
@@ -98,6 +101,7 @@ def construir_recuperador(
     )
 
     # armazena os chunks no vectorstore
+    informar("Embedding", f"Criando embeddings de {len(documentos)} trechos", arquivo=nome_arquivo)
     armazenamento_vetorial = Chroma.from_documents(
         documents=documentos,
         embedding=vetores_representacao,
@@ -105,6 +109,7 @@ def construir_recuperador(
     )
 
     _verificar_interrupcao(cancelamento_evento)
+    informar("Embedding", "Embeddings concluídos", arquivo=nome_arquivo)
 
     recuperador = armazenamento_vetorial.as_retriever(
         search_type="mmr",
@@ -141,8 +146,14 @@ def responder_perguntas(
     print("\nembedding ok\n")
 
     try:
-        for pergunta in perguntas:
+        total_perguntas = len(perguntas)
+        for indice_pergunta, pergunta in enumerate(perguntas, start=1):
             _verificar_interrupcao(cancelamento_evento)
+            informar(
+                "Análise das perguntas",
+                f"Processando pergunta {indice_pergunta} de {total_perguntas}",
+                arquivo=Path(caminho_pdf).name,
+            )
             resultados = recuperador.invoke(pergunta['pergunta'] + "\n" + pergunta['informacao_adicional'])
             _verificar_interrupcao(cancelamento_evento)
             contexto = "\n\n".join(
@@ -152,6 +163,13 @@ def responder_perguntas(
 
             respostas.append(cadeia.invoke({"contexto": contexto, "pergunta": pergunta["pergunta"], "informacao_adicional": pergunta["informacao_adicional"]}))
             _verificar_interrupcao(cancelamento_evento)
+            informar(
+                "Análise das perguntas",
+                f"Pergunta {indice_pergunta} de {total_perguntas} concluída",
+                arquivo=Path(caminho_pdf).name,
+                perguntas_concluidas=indice_pergunta,
+                total_perguntas=total_perguntas,
+            )
     finally:
         try:
             fc.descarregar_modelo(MODELO_EMBEDDING)

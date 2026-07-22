@@ -11,6 +11,7 @@ import importlib.util
 import re
 import scripts.funcoes_comuns as fc
 import scripts.executor_verificacoes as executor_verificacoes
+import scripts.status_processamento as status_processamento
 import traceback
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
@@ -877,6 +878,19 @@ class AplicacaoPrincipal(ctk.CTk):
         )
 
         self.botao_executar.pack(pady=(50,15))
+
+        self.campo_status = ctk.CTkTextbox(
+            self.quadro_direito,
+            width=420,
+            height=115,
+            wrap="word",
+            state="disabled",
+        )
+        self.campo_status.pack(pady=(0, 5), padx=20, fill="x")
+        self.atualizar_status_processamento({
+            "etapa": "Aguardando",
+            "mensagem": "Preencha os dados e clique em Executar.",
+        })
         
 
         # =====================================================
@@ -1222,6 +1236,35 @@ class AplicacaoPrincipal(ctk.CTk):
     # EXECUÇÃO
     # =========================================================
 
+    def atualizar_status_processamento(self, evento: dict) -> None:
+        """Mostra o evento mais recente no painel de acompanhamento."""
+        linhas = [
+            f"Etapa: {evento.get('etapa', '-')}",
+            f"Status: {evento.get('mensagem', '-')}",
+        ]
+        if evento.get("arquivo"):
+            linhas.append(f"Arquivo: {evento['arquivo']}")
+        if evento.get("pagina") and evento.get("total_paginas"):
+            linhas.append(f"Página: {evento['pagina']} de {evento['total_paginas']}")
+        elif evento.get("pagina"):
+            linhas.append(f"Página: {evento['pagina']}")
+        if evento.get("perguntas_concluidas") is not None:
+            linhas.append(
+                f"Perguntas concluídas: {evento['perguntas_concluidas']} de "
+                f"{evento.get('total_perguntas', '?')}"
+            )
+
+        self.campo_status.configure(state="normal")
+        self.campo_status.delete("1.0", "end")
+        self.campo_status.insert("1.0", "\n".join(linhas))
+        self.campo_status.configure(state="disabled")
+
+
+    def receber_status_processamento(self, evento: dict) -> None:
+        """Agenda na thread gráfica uma atualização recebida do processamento."""
+        self.after(0, lambda evento=evento: self.atualizar_status_processamento(evento))
+
+
     def acao_botao_executar(self):
         """Executa a verificacao ou solicita a interrupcao do processamento."""
         if self.processando:
@@ -1234,6 +1277,10 @@ class AplicacaoPrincipal(ctk.CTk):
     def solicitar_interrupcao(self):
         """Sinaliza ao RAG que a execucao deve parar assim que possivel."""
         self.cancelamento_evento.set()
+        self.atualizar_status_processamento({
+            "etapa": "Interrupção",
+            "mensagem": "Aguardando a operação atual terminar com segurança...",
+        })
         self.botao_executar.configure(
             state="disabled",
             text="Interrompendo..."
@@ -1255,6 +1302,11 @@ class AplicacaoPrincipal(ctk.CTk):
         self.cancelamento_evento.clear()
         self.processando = True
         executor_verificacoes.definir_cancelamento_evento(self.cancelamento_evento)
+        status_processamento.definir_callback(self.receber_status_processamento)
+        self.atualizar_status_processamento({
+            "etapa": "Iniciando",
+            "mensagem": "Carregando a verificação selecionada...",
+        })
 
         nome_verificacao = self.lista_verificacoes.get()
         fase = self.campo_fase.get()
@@ -1323,6 +1375,10 @@ class AplicacaoPrincipal(ctk.CTk):
                 if hasattr(modulo, "principal"):
                     modulo.principal()
 
+                self.receber_status_processamento({
+                    "etapa": "Concluído",
+                    "mensagem": "Todos os arquivos foram processados.",
+                })
                 self.after(
                     0,
                     lambda: self.rotulo_erro.configure(
@@ -1332,6 +1388,10 @@ class AplicacaoPrincipal(ctk.CTk):
                     )
 
             except fc.ProcessamentoInterrompido:
+                self.receber_status_processamento({
+                    "etapa": "Interrompido",
+                    "mensagem": "O processamento foi interrompido pelo usuário.",
+                })
                 self.after(
                     0,
                     lambda: self.rotulo_erro.configure(
@@ -1342,6 +1402,10 @@ class AplicacaoPrincipal(ctk.CTk):
 
             except Exception as excecao:
                 print(traceback.format_exc())
+                self.receber_status_processamento({
+                    "etapa": "Erro",
+                    "mensagem": str(excecao),
+                })
 
                 self.after(
                     0,
@@ -1353,6 +1417,7 @@ class AplicacaoPrincipal(ctk.CTk):
 
             finally:
                 executor_verificacoes.definir_cancelamento_evento(None)
+                status_processamento.definir_callback(None)
                 self.processando = False
 
                 self.after(

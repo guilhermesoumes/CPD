@@ -11,6 +11,7 @@ from langchain_core.documents import Document
 from openai import OpenAI
 
 import scripts.funcoes_comuns as fc
+from scripts.status_processamento import informar
 from scripts.configuracao import CHAVE_API, MODELO_OCR, URL_API_OPENAI
 
 # configuração do LM Studio
@@ -121,11 +122,19 @@ def processar_pdf_com_imagens_temporarias(
         print(pasta_temp)
         doc = pymupdf.open(pdf_path)
         try:
+            total_paginas = len(doc)
             zoom = dpi / 72
             matriz = pymupdf.Matrix(zoom, zoom)
             for indice_pagina in range(len(doc)):
                 _verificar_interrupcao(cancelamento_evento)
                 numero_pagina = indice_pagina + 1
+                informar(
+                    "Leitura visual do PDF",
+                    f"Lendo página {numero_pagina} de {total_paginas}",
+                    arquivo=pdf_path.name,
+                    pagina=numero_pagina,
+                    total_paginas=total_paginas,
+                )
                 pagina = doc[indice_pagina]
                 pix = pagina.get_pixmap(
                     matrix=matriz,
