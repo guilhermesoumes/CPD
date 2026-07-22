@@ -45,6 +45,13 @@ def caminho_configuracao_usuario() -> Path:
 
     pasta_aplicacao = pasta_base / "CPD-DNIT"
     pasta_aplicacao.mkdir(parents=True, exist_ok=True)
+
+    caminho_config = pasta_aplicacao / "config.json"
+
+    print("USUÁRIO ATUAL:", Path.home())
+    print("PASTA DA APLICAÇÃO:", pasta_aplicacao)
+    print("ARQUIVO DE CONFIGURAÇÃO:", caminho_config)
+    
     return pasta_aplicacao / "config.json"
 
 # retorna caminho da pasta ou arquivo considerando também pacotes PyInstaller

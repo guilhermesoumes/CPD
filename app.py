@@ -23,6 +23,7 @@ ctk.set_default_color_theme("blue")
 
 COR_QUADRO = ("white", "#1f1f1f")
 COR_TEXTO = ("black", "white")
+COR_TITULO = ("#01356f", "#f7bf5d")
 
 URL_LM_STUDIO = "http://127.0.0.1:1234/v1"
 INTERVALO_VERIFICACAO_LM = 10_000  # milissegundos
@@ -567,7 +568,7 @@ class AplicacaoPrincipal(ctk.CTk):
         # TÍTULO
         # =====================================================
         
-        titulo = ctk.CTkLabel(self.quadro_superior, text="CPD-DNIT", font=("Arial", 28, "bold"), text_color="#223467")
+        titulo = ctk.CTkLabel(self.quadro_superior, text="CPD-DNIT", font=("Arial", 40, "bold"), text_color=COR_TITULO)
         titulo.pack(pady=(20, 15))
 
     # =========================================================
