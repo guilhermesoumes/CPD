@@ -30,6 +30,20 @@ URL_LM_STUDIO = "http://127.0.0.1:1234/v1"
 INTERVALO_VERIFICACAO_LM = 10_000  # milissegundos
 TIMEOUT_VERIFICACAO_LM = 3  # segundos
 
+ROTULOS_VERIFICACOES = {
+    "estudo_geologico.py": "Estudo geológico",
+    "estudo_geotecnico.py": "Estudo geotécnico",
+    "estudo_hidrologico.py": "Estudo hidrológico",
+    "estudo_tracado.py": "Estudo de traçado",
+    "estudo_trafego.py": "Estudo de tráfego",
+    "projeto_contencao.py": "Projeto de contenção",
+    "projeto_geometrico.py": "Projeto geométrico",
+    "projeto_obras_complementares.py": "Projeto de obras complementares",
+    "projeto_pavimentacao.py": "Projeto de pavimentação",
+    "projeto_sinalizacao.py": "Projeto de sinalização",
+    "projeto_terraplanagem.py": "Projeto de terraplanagem",
+}
+
 # =========================================================
 # FUNÇÕES AUXILIARES
 # =========================================================
@@ -188,6 +202,7 @@ class AplicacaoPrincipal(ctk.CTk):
 
         self.janela_sugestoes_contrato = None
         self.selecionando_sugestao_contrato = False
+        self.arquivos_verificacao_por_rotulo = {}
 
         self.criar_interface()
         self.carregar_dados_salvos()
@@ -986,19 +1001,30 @@ class AplicacaoPrincipal(ctk.CTk):
             pasta = caminho_arquivo(Path("checks") / "projetos")
 
         try:
-            verificacoes = sorted(
+            arquivos_verificacao = sorted(
                 arquivo.name for arquivo in pasta.iterdir()
                 if arquivo.is_file() and arquivo.name.endswith(".py") and not arquivo.name.startswith("_")
             )
 
         except Exception as excecao:
             print(f"Erro ao carregar scripts: {excecao}")
-            verificacoes = []
+            arquivos_verificacao = []
 
-        self.lista_verificacoes.configure(values=verificacoes)
+        self.arquivos_verificacao_por_rotulo = {
+            ROTULOS_VERIFICACOES.get(
+                nome_arquivo,
+                Path(nome_arquivo).stem.replace("_", " ").capitalize(),
+            ): nome_arquivo
+            for nome_arquivo in arquivos_verificacao
+        }
+        rotulos = list(self.arquivos_verificacao_por_rotulo)
 
-        if verificacoes:
-            self.lista_verificacoes.set(verificacoes[0])
+        self.lista_verificacoes.configure(values=rotulos)
+
+        if rotulos:
+            self.lista_verificacoes.set(rotulos[0])
+        else:
+            self.lista_verificacoes.set("Selecione...")
 
     # =========================================================
     # MENSAGEM DE ERRO
@@ -1088,10 +1114,10 @@ class AplicacaoPrincipal(ctk.CTk):
 
             return
 
-        nome_verificacao = self.lista_verificacoes.get()
-        if not nome_verificacao:
+        rotulo_verificacao = self.lista_verificacoes.get()
+        if rotulo_verificacao not in self.arquivos_verificacao_por_rotulo:
             self.rotulo_erro.configure(
-                text="Selecione um script",
+                text="Selecione uma verificação",
                 text_color="red"
             )
 
@@ -1214,6 +1240,7 @@ class AplicacaoPrincipal(ctk.CTk):
         self.campo_fase.set("Fase...")
         self.lista_verificacoes.configure(values=[])
         self.lista_verificacoes.set("Selecione...")
+        self.arquivos_verificacao_por_rotulo = {}
 
         # Arquivos e diretório selecionados.
         self.rotulo_arquivos_analise.configure(
@@ -1308,7 +1335,8 @@ class AplicacaoPrincipal(ctk.CTk):
             "mensagem": "Carregando a verificação selecionada...",
         })
 
-        nome_verificacao = self.lista_verificacoes.get()
+        rotulo_verificacao = self.lista_verificacoes.get()
+        nome_verificacao = self.arquivos_verificacao_por_rotulo[rotulo_verificacao]
         fase = self.campo_fase.get()
 
         if fase == "Estudos Preliminares":
