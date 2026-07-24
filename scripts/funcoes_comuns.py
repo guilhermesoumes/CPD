@@ -35,8 +35,8 @@ def verificar_interrupcao(cancelamento_evento: Event | None) -> None:
         raise ProcessamentoInterrompido("Processamento interrompido pelo usuario.")
 
 
-def caminho_configuracao_usuario() -> Path:
-    """Retorna o arquivo persistente de configuracao da aplicacao."""
+def pasta_dados_usuario() -> Path:
+    """Retorna a pasta persistente de dados da aplicacao."""
 
     if sys.platform == "win32":
         pasta_base = Path.home() / "AppData" / "Local"
@@ -46,13 +46,27 @@ def caminho_configuracao_usuario() -> Path:
     pasta_aplicacao = pasta_base / "CPD-DNIT"
     pasta_aplicacao.mkdir(parents=True, exist_ok=True)
 
+    return pasta_aplicacao
+
+
+def caminho_configuracao_usuario() -> Path:
+    """Retorna o arquivo persistente de configuracao da aplicacao."""
+
+    pasta_aplicacao = pasta_dados_usuario()
+
     caminho_config = pasta_aplicacao / "config.json"
 
     print("USUÁRIO ATUAL:", Path.home())
     print("PASTA DA APLICAÇÃO:", pasta_aplicacao)
     print("ARQUIVO DE CONFIGURAÇÃO:", caminho_config)
     
-    return pasta_aplicacao / "config.json"
+    return caminho_config
+
+
+def caminho_vectorstores_usuario() -> Path:
+    """Retorna a pasta persistente dos indices vetoriais da aplicacao."""
+
+    return pasta_dados_usuario() / "vectorstores"
 
 # retorna caminho da pasta ou arquivo considerando também pacotes PyInstaller
 def resolve_caminho(caminho_relativo: str) -> str:

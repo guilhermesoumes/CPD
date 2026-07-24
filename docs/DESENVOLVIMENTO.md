@@ -89,11 +89,15 @@ Instale o PyInstaller separadamente e execute:
 
 ```powershell
 pyinstaller --onefile --noconsole app.py `
+  --name "CPD-DNIT" `
+  --icon "figs\logo_icone.ico" `
   --add-data "checks;checks" `
   --add-data "scripts;scripts" `
   --add-data "figs;figs" `
   --add-data "templates;templates"
 ```
+
+.\.venv\Scripts\pyinstaller.exe --clean --noconfirm CPD-DNIT.spec
 
 Valide o executável em uma máquina limpa. O pacote não inclui LM Studio nem os modelos. Configuração e histórico permanecem no diretório de dados do usuário.
 

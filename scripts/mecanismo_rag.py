@@ -74,7 +74,7 @@ def _verificar_interrupcao(cancelamento_evento: Event | None) -> None:
 # recebe doc langchain, define caminho do vectorstore e define os parâmetros do recuperador
 def construir_recuperador(
     caminho_pdf: str | Path,
-    raiz_persistencia: str | Path = "vectorstores",
+    raiz_persistencia: str | Path | None = None,
     cancelamento_evento: Event | None = None,
 ):
     nome_arquivo = Path(caminho_pdf).name
@@ -86,9 +86,13 @@ def construir_recuperador(
     if not documentos:
         raise ValueError(f"Nenhum texto util foi extraido de {caminho_pdf}.")
     
-    # define caminho do vectorstore
-    #diretorio_persistencia = Path(raiz_persistencia)
-    diretorio_persistencia = Path(raiz_persistencia) / _normalizar_nome_vectorstore(caminho_pdf)
+    # Mantem os indices junto aos demais dados persistentes da aplicacao.
+    raiz_vectorstores = (
+        Path(raiz_persistencia)
+        if raiz_persistencia is not None
+        else fc.caminho_vectorstores_usuario()
+    )
+    diretorio_persistencia = raiz_vectorstores / _normalizar_nome_vectorstore(caminho_pdf)
     shutil.rmtree(diretorio_persistencia, ignore_errors=True)
     diretorio_persistencia.mkdir(parents=True, exist_ok=True)
 

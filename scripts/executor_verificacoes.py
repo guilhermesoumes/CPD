@@ -117,7 +117,7 @@ def executar_verificacao_conteudo(configuracao: ConfiguracaoVerificacao) -> None
     diretorio_saida = _diretorio_resultado(configuracao, dados_aplicacao)
     fc.garantir_diretorios_saida(diretorio_saida)
 
-    pasta_vectorstores = Path(fc.resolve_caminho("vectorstores"))
+    pasta_vectorstores = fc.caminho_vectorstores_usuario()
     shutil.rmtree(pasta_vectorstores, ignore_errors=True)
 
     total_arquivos = len(arquivos_pdf)

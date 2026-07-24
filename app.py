@@ -219,6 +219,7 @@ class AplicacaoPrincipal(ctk.CTk):
         self.campo_contrato.insert(0, dados.get("contrato", ""))
         self.campo_modalidade_de_contratacao.insert(0, dados.get("modalidade-de-contratacao", ""))
         self.campo_rodovia.insert(0, dados.get("rodovia", ""))
+        self.campo_segmento.insert(0, dados.get("segmento", ""))
         self.campo_extensao.insert(0, dados.get("extensao", ""))
         self.campo_lote.insert(0, dados.get("lote", ""))
         self.campo_versao_analise.insert(0, dados.get("numero-analise", ""))

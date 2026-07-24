@@ -80,7 +80,6 @@ A versão é o maior número de RAC compatível já existente no diretório, acr
 - [Desenvolvimento](docs/DESENVOLVIMENTO.md): ambiente, convencoes, extensão, validação e empacotamento.
 - [Catálogo de verificações](docs/VERIFICACOES.md): disciplinas, códigos e regras para novos módulos.
 - [Revisão técnica](docs/REVISAO_TECNICA.md): achados, riscos conhecidos e lacunas de teste.
-- [Histórico de alterações](CHANGELOG.md): registro cronológico existente.
 
 ## Estrutura
 

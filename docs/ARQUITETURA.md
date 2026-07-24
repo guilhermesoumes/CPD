@@ -23,17 +23,17 @@ flowchart LR
 
 ## Componentes
 
-| Componente | Responsabilidade |
-|---|---|
-| `app.py` | Interface, validação, histórico, descoberta dinâmica de checks, status do LM Studio e thread de execução |
-| `scripts/executor_verificacoes.py` | Orquestração por PDF, caminho de saída, ART e chamada do gerador |
-| `scripts/extracao_texto_pdf.py` | Renderização a 200 DPI, OCR visual, filtragem de linhas e criação de `Document` |
-| `scripts/mecanismo_rag.py` | Embeddings, Chroma, recuperação MMR e respostas estruturadas |
-| `scripts/verificacao_ART.py` | Recuperação de páginas candidatas e classificação visual de ART |
-| `scripts/configuracao.py` | Endpoints, modelos e parâmetros técnicos compartilhados |
-| `scripts/funcoes_comuns.py` | Caminhos, JSON, cancelamento, lote, versionamento e ciclo de vida de modelos |
-| `checks/**` | Configuração declarativa de disciplina, código, tipo e perguntas |
-| `templates/relatorio_pdf.py` | Tabelas, pontuação, fontes e composição A4 do RAC |
+| Componente                         | Responsabilidade                                                                                         |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `app.py`                           | Interface, validação, histórico, descoberta dinâmica de checks, status do LM Studio e thread de execução |
+| `scripts/executor_verificacoes.py` | Orquestração por PDF, caminho de saída, ART e chamada do gerador                                         |
+| `scripts/extracao_texto_pdf.py`    | Renderização a 200 DPI, OCR visual, filtragem de linhas e criação de `Document`                          |
+| `scripts/mecanismo_rag.py`         | Embeddings, Chroma, recuperação MMR e respostas estruturadas                                             |
+| `scripts/verificacao_ART.py`       | Recuperação de páginas candidatas e classificação visual de ART                                          |
+| `scripts/configuracao.py`          | Endpoints, modelos e parâmetros técnicos compartilhados                                                  |
+| `scripts/funcoes_comuns.py`        | Caminhos, JSON, cancelamento, lote, versionamento e ciclo de vida de modelos                             |
+| `checks/**`                        | Configuração declarativa de disciplina, código, tipo e perguntas                                         |
+| `templates/relatorio_pdf.py`       | Tabelas, pontuação, fontes e composição A4 do RAC                                                        |
 
 ## Fluxo detalhado
 
@@ -49,13 +49,13 @@ flowchart LR
 
 ## Integrações e modelos
 
-| Função | Modelo | Endpoint |
-|---|---|---|
-| OCR | `glm-ocr` | API OpenAI `http://127.0.0.1:1234/v1` |
-| Embeddings | `text-embedding-qwen3-embedding-0.6b` | API OpenAI local |
-| Respostas | `google/gemma-3n-e4b` | API OpenAI local |
-| ART visual | `google/gemma-4-e2b` | API OpenAI local |
-| Carga/descarga | identificador do modelo | API nativa `/api/v1/models/*` |
+| Função         | Modelo                                | Endpoint                              |
+| -------------- | ------------------------------------- | ------------------------------------- |
+| OCR            | `glm-ocr`                             | API OpenAI `http://127.0.0.1:1234/v1` |
+| Embeddings     | `text-embedding-qwen3-embedding-0.6b` | API OpenAI local                      |
+| Respostas      | `google/gemma-3n-e4b`                 | API OpenAI local                      |
+| ART visual     | `google/gemma-4-e2b`                  | API OpenAI local                      |
+| Carga/descarga | identificador do modelo               | API nativa `/api/v1/models/*`         |
 
 Os endereços, nomes, chave simbólica `lm-studio` e contexto de carga `20000` estão centralizados em `scripts/configuracao.py`; ainda não há variáveis de ambiente.
 
