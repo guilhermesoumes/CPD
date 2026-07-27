@@ -2,7 +2,7 @@
 
 ## Apresentação
 
-Este documento reúne e organiza, em uma única referência, o conteúdo anteriormente distribuído entre os arquivos de arquitetura, desenvolvimento, guia do usuário, manual do usuário, nota técnica, revisão técnica e catálogo de verificações do CPD-DNIT.
+Este documento reúne e organiza, em uma única referência, o conteúdo anteriormente distribuído entre os arquivos de arquitetura, desenvolvimento, guia do usuário, manual do usuário, revisão técnica e catálogo de verificações do CPD-DNIT.
 
 O objetivo é oferecer uma leitura contínua e compreensível para diferentes públicos. As primeiras partes explicam o propósito do sistema e sua utilização cotidiana. As partes seguintes detalham arquitetura, processamento, desenvolvimento, segurança, limitações, verificação de qualidade e melhorias recomendadas.
 
@@ -69,12 +69,12 @@ Também são necessários:
 
 ### 2.2 Modelos utilizados
 
-| Função | Modelo padrão |
-|---|---|
-| Transcrição visual das páginas | `glm-ocr` |
-| Geração de embeddings | `text-embedding-qwen3-embedding-0.6b` |
-| Respostas sobre as disciplinas | `google/gemma-3n-e4b` |
-| Classificação visual de ART | `google/gemma-4-e2b` |
+| Função                         | Modelo padrão                         |
+| ------------------------------ | ------------------------------------- |
+| Transcrição visual das páginas | `glm-ocr`                             |
+| Geração de embeddings          | `text-embedding-qwen3-embedding-0.6b` |
+| Respostas sobre as disciplinas | `google/gemma-3n-e4b`                 |
+| Classificação visual de ART    | `google/gemma-4-e2b`                  |
 
 Os identificadores devem corresponder exatamente aos modelos disponíveis na versão do LM Studio utilizada.
 
@@ -108,21 +108,21 @@ Antes de iniciar uma avaliação, confirme a disponibilidade do LM Studio e agua
 
 ### 3.2 Campos da interface
 
-| Campo | Obrigatório | Orientação e efeito |
-|---|---:|---|
-| Contrato | Não | Identificação também usada como chave do histórico local |
-| Processo | Sim | Número ou identificação administrativa incluída no RAC |
-| Edital | Não | Identificação do edital relacionado |
-| Modalidade de contratação | Não | Modalidade aplicável ao empreendimento |
-| Rodovia | Sim | Deve seguir `000/UF`, por exemplo `040/DF`; compõe o caminho e o nome do RAC |
-| Segmento | Não | Descrição do trecho analisado |
-| Extensão | Sim | Extensão do segmento, estudo ou projeto |
-| Lote | Sim | Valores inteiramente numéricos são normalizados com dois dígitos |
-| Tipo de projeto | Não | Classificação apresentada nos metadados do RAC |
-| Fase | Sim | Define se a interface apresenta Estudos ou Projetos |
-| Número da análise | Conforme a versão da interface | Referência administrativa exibida no RAC |
-| Número do último relatório | Conforme a versão da interface | Metadado informativo; não controla a versão do arquivo |
-| Analista | Sim | Responsável pela conferência |
+| Campo                      |                    Obrigatório | Orientação e efeito                                                          |
+| -------------------------- | -----------------------------: | ---------------------------------------------------------------------------- |
+| Contrato                   |                            Não | Identificação também usada como chave do histórico local                     |
+| Processo                   |                            Sim | Número ou identificação administrativa incluída no RAC                       |
+| Edital                     |                            Não | Identificação do edital relacionado                                          |
+| Modalidade de contratação  |                            Não | Modalidade aplicável ao empreendimento                                       |
+| Rodovia                    |                            Sim | Deve seguir `000/UF`, por exemplo `040/DF`; compõe o caminho e o nome do RAC |
+| Segmento                   |                            Não | Descrição do trecho analisado                                                |
+| Extensão                   |                            Sim | Extensão do segmento, estudo ou projeto                                      |
+| Lote                       |                            Sim | Valores inteiramente numéricos são normalizados com dois dígitos             |
+| Tipo de projeto            |                            Não | Classificação apresentada nos metadados do RAC                               |
+| Fase                       |                            Sim | Define se a interface apresenta Estudos ou Projetos                          |
+| Número da análise          | Conforme a versão da interface | Referência administrativa exibida no RAC                                     |
+| Número do último relatório | Conforme a versão da interface | Metadado informativo; não controla a versão do arquivo                       |
+| Analista                   |                            Sim | Responsável pela conferência                                                 |
 
 Campos obrigatórios vazios são destacados. A rodovia deve conter três algarismos, uma barra e a sigla da unidade federativa em letras maiúsculas.
 
@@ -239,19 +239,19 @@ Antes de usar o RAC em uma decisão, o analista deve:
 
 ## 4. Solução de problemas
 
-| Sintoma | Causa provável ou ação recomendada |
-|---|---|
-| LM Studio desconectado | Inicie o servidor local e confirme a porta `1234` |
-| Indicador verde, mas processamento falha | Confira individualmente a instalação e o identificador dos quatro modelos |
-| Erro ao carregar modelo | Verifique o nome exato, a compatibilidade e os recursos disponíveis |
-| Nenhum PDF selecionado | Selecione ao menos um arquivo antes de executar |
-| Rodovia inválida | Use três dígitos, barra e UF maiúscula, como `040/DF` |
-| Nenhum texto útil extraído | Confira integridade, proteção, resolução, orientação e legibilidade do PDF |
-| Evidência ou página incorreta | Revise o original; OCR, recuperação semântica e modelo podem falhar |
-| RAC não aparece | Confira a pasta configurada, permissões de escrita e mensagem de erro |
-| Cancelamento demora | Aguarde a conclusão da requisição ao modelo que já está em andamento |
-| Percentual parece incorreto | Examine o formato textual das conclusões, pois a pontuação depende do parser |
-| Processamento muito lento | Avalie número de páginas, resolução e desempenho dos modelos e do hardware |
+| Sintoma                                  | Causa provável ou ação recomendada                                           |
+| ---------------------------------------- | ---------------------------------------------------------------------------- |
+| LM Studio desconectado                   | Inicie o servidor local e confirme a porta `1234`                            |
+| Indicador verde, mas processamento falha | Confira individualmente a instalação e o identificador dos quatro modelos    |
+| Erro ao carregar modelo                  | Verifique o nome exato, a compatibilidade e os recursos disponíveis          |
+| Nenhum PDF selecionado                   | Selecione ao menos um arquivo antes de executar                              |
+| Rodovia inválida                         | Use três dígitos, barra e UF maiúscula, como `040/DF`                        |
+| Nenhum texto útil extraído               | Confira integridade, proteção, resolução, orientação e legibilidade do PDF   |
+| Evidência ou página incorreta            | Revise o original; OCR, recuperação semântica e modelo podem falhar          |
+| RAC não aparece                          | Confira a pasta configurada, permissões de escrita e mensagem de erro        |
+| Cancelamento demora                      | Aguarde a conclusão da requisição ao modelo que já está em andamento         |
+| Percentual parece incorreto              | Examine o formato textual das conclusões, pois a pontuação depende do parser |
+| Processamento muito lento                | Avalie número de páginas, resolução e desempenho dos modelos e do hardware   |
 
 Ao solicitar suporte, reúna a versão da aplicação, versão do LM Studio, identificadores dos modelos, etapa em que o erro ocorreu, mensagem apresentada e características gerais do PDF. Não compartilhe documentos ou caminhos sigilosos sem autorização.
 
@@ -282,19 +282,18 @@ As integrações de IA apontam para uma instância local do LM Studio. A API com
 
 ### 5.2 Componentes
 
-| Componente | Responsabilidade principal |
-|---|---|
-| `app.py` | Interface, validação, persistência, histórico, descoberta de checks, status do servidor, thread e cancelamento |
-| `scripts/configuracao.py` | Endpoints, modelos, chave simbólica, contexto e timeouts |
-| `scripts/funcoes_comuns.py` | Caminhos, JSON, lote, versionamento, cancelamento e ciclo de vida dos modelos |
-| `scripts/extracao_texto_pdf.py` | Renderização de páginas, OCR visual, filtragem e criação de documentos LangChain |
-| `scripts/mecanismo_rag.py` | Embeddings, Chroma, recuperação MMR, prompt e respostas estruturadas em texto |
-| `scripts/verificacao_ART.py` | Recuperação de páginas candidatas e classificação visual de ART |
-| `scripts/executor_verificacoes.py` | Orquestração do pipeline para cada PDF e chamada do gerador de RAC |
-| `checks/estudos` | Declarações das verificações de Estudos Preliminares |
-| `checks/projetos` | Declarações das verificações de Projeto Básico e Executivo |
-| `templates/relatorio_pdf.py` | Parsing das respostas, pontuação e composição A4 pelo ReportLab |
-| `tests/test_scripts.py` | Testes unitários dos contratos puros existentes |
+| Componente                         | Responsabilidade principal                                                                                     |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `app.py`                           | Interface, validação, persistência, histórico, descoberta de checks, status do servidor, thread e cancelamento |
+| `scripts/configuracao.py`          | Endpoints, modelos, chave simbólica, contexto e timeouts                                                       |
+| `scripts/funcoes_comuns.py`        | Caminhos, JSON, lote, versionamento, cancelamento e ciclo de vida dos modelos                                  |
+| `scripts/extracao_texto_pdf.py`    | Renderização de páginas, OCR visual, filtragem e criação de documentos LangChain                               |
+| `scripts/mecanismo_rag.py`         | Embeddings, Chroma, recuperação MMR, prompt e respostas estruturadas em texto                                  |
+| `scripts/verificacao_ART.py`       | Recuperação de páginas candidatas e classificação visual de ART                                                |
+| `scripts/executor_verificacoes.py` | Orquestração do pipeline para cada PDF e chamada do gerador de RAC                                             |
+| `checks/estudos`                   | Declarações das verificações de Estudos Preliminares                                                           |
+| `checks/projetos`                  | Declarações das verificações de Projeto Básico e Executivo                                                     |
+| `templates/relatorio_pdf.py`       | Parsing das respostas, pontuação e composição A4 pelo ReportLab                                                |
 
 ### 5.3 Tecnologias principais
 
@@ -309,13 +308,13 @@ As integrações de IA apontam para uma instância local do LM Studio. A API com
 
 ### 5.4 Configuração técnica padrão
 
-| Parâmetro | Valor |
-|---|---|
-| API compatível com OpenAI | `http://127.0.0.1:1234/v1` |
-| API nativa de modelos | `http://127.0.0.1:1234/api/v1/models` |
-| Chave simbólica | `lm-studio` |
-| Contexto solicitado na carga | `20000` tokens |
-| Timeout de gerenciamento | `300` segundos |
+| Parâmetro                    | Valor                                 |
+| ---------------------------- | ------------------------------------- |
+| API compatível com OpenAI    | `http://127.0.0.1:1234/v1`            |
+| API nativa de modelos        | `http://127.0.0.1:1234/api/v1/models` |
+| Chave simbólica              | `lm-studio`                           |
+| Contexto solicitado na carga | `20000` tokens                        |
+| Timeout de gerenciamento     | `300` segundos                        |
 
 Esses parâmetros estão centralizados em `scripts/configuracao.py`. Na implementação documentada, não são editáveis pela interface nem substituíveis por variáveis de ambiente.
 
@@ -411,24 +410,24 @@ Os endpoints nativos `/load` e `/unload` recebem a chave simbólica e o identifi
 
 ### 7.1 Estudos Preliminares
 
-| Arquivo | Disciplina | Código | Perguntas declaradas |
-|---|---|---:|---:|
-| `estudo_geologico.py` | Estudo Geológico | EGEO | 3 |
-| `estudo_geotecnico.py` | Estudo Geotécnico | EGTC | 5 |
-| `estudo_hidrologico.py` | Estudo Hidrológico | EHID | 7 |
-| `estudo_tracado.py` | Estudo de Traçado | ETRC | 6 |
-| `estudo_trafego.py` | Estudo de Tráfego | ETRF | 4 |
+| Arquivo                 | Disciplina         | Código | Perguntas declaradas |
+| ----------------------- | ------------------ | -----: | -------------------: |
+| `estudo_geologico.py`   | Estudo Geológico   |   EGEO |                    3 |
+| `estudo_geotecnico.py`  | Estudo Geotécnico  |   EGTC |                    5 |
+| `estudo_hidrologico.py` | Estudo Hidrológico |   EHID |                    7 |
+| `estudo_tracado.py`     | Estudo de Traçado  |   ETRC |                    6 |
+| `estudo_trafego.py`     | Estudo de Tráfego  |   ETRF |                    4 |
 
 ### 7.2 Projeto Básico e Projeto Executivo
 
-| Arquivo | Disciplina | Código | Perguntas declaradas |
-|---|---|---:|---:|
-| `projeto_contencao.py` | Contenção | PCTC | 6 |
-| `projeto_geometrico.py` | Geometria | PGMT | 4 |
-| `projeto_obras_complementares.py` | Obras Complementares | POBC | 3 |
-| `projeto_pavimentacao.py` | Pavimentação | PPAV | 4 |
-| `projeto_sinalizacao.py` | Sinalização | PSIN | 4 |
-| `projeto_terraplanagem.py` | Terraplanagem | PTER | 6 |
+| Arquivo                           | Disciplina           | Código | Perguntas declaradas |
+| --------------------------------- | -------------------- | -----: | -------------------: |
+| `projeto_contencao.py`            | Contenção            |   PCTC |                    6 |
+| `projeto_geometrico.py`           | Geometria            |   PGMT |                    4 |
+| `projeto_obras_complementares.py` | Obras Complementares |   POBC |                    3 |
+| `projeto_pavimentacao.py`         | Pavimentação         |   PPAV |                    4 |
+| `projeto_sinalizacao.py`          | Sinalização          |   PSIN |                    4 |
+| `projeto_terraplanagem.py`        | Terraplanagem        |   PTER |                    6 |
 
 Projeto Básico e Projeto Executivo compartilham exatamente os mesmos arquivos e perguntas. A diferença de fase é registrada como metadado.
 
@@ -593,7 +592,7 @@ Para uso institucional, recomenda-se definir classificação dos dados, permiss�
 
 ---
 
-## 11. Revisão técnica e evolução recomendada
+## 11. Revisão técnica
 
 ### 11.1 Melhorias já incorporadas
 
@@ -607,45 +606,6 @@ A revisão técnica registra as seguintes correções:
 - centralização de endpoints, modelos, chave, contexto e timeouts;
 - correção de contratos de tipo para perguntas, respostas e páginas de ART;
 - declaração das dependências diretas e inclusão de testes para funções puras.
-
-### 11.2 Achados pendentes prioritários
-
-#### Resposta estruturada
-
-O maior risco de consistência está no parsing textual. O sistema deve preferir uma resposta estruturada, com schema validado, campos explícitos para conclusão, evidências e páginas e tratamento claro de resposta inválida.
-
-#### Mensagens de erro e observabilidade
-
-Tracebacks completos devem ser registrados em log técnico, enquanto o usuário recebe uma mensagem curta, acionável e acompanhada por um identificador de incidente. Também são desejáveis logs estruturados, rotação, níveis de severidade e proteção de dados sensíveis.
-
-#### Configuração externa
-
-Portas, endpoints, modelos, contexto e timeouts deveriam ser externalizados por configuração validada ou variáveis de ambiente. Isso permitiria adaptar a instalação sem editar o código ou recompilar o executável.
-
-#### Diagnóstico inicial dos modelos
-
-A aplicação deveria verificar a presença e a capacidade de carga de cada modelo antes do processamento, apresentando claramente qual dependência está ausente ou incompatível.
-
-### 11.3 Lacunas de qualidade
-
-- faltam clientes simulados do LM Studio para testes de pipeline;
-- faltam testes de contrato com a versão alvo do servidor;
-- faltam testes de interface, PDFs reais, falhas HTTP e cancelamento de ponta a ponta;
-- falta validação automatizada da renderização do RAC;
-- faltam integração contínua, lint e verificação de tipos;
-- faltam inventário formal de terceiros e licença do projeto;
-- o `CHANGELOG.md` ainda contém referências históricas a estruturas anteriores.
-
-### 11.4 Ordem recomendada de evolução
-
-1. adotar resposta estruturada e validação de schema;
-2. simular os clientes do LM Studio em testes do pipeline;
-3. adicionar lint, tipos e integração contínua;
-4. melhorar erros, logs e configuração externa;
-5. validar previamente modelos e recursos do ambiente;
-6. executar aceitação com uma amostra representativa de documentos;
-7. comparar os resultados com revisão independente de especialistas;
-8. formalizar licença, política de dados, retenção e suporte.
 
 ---
 

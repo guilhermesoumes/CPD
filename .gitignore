@@ -2,7 +2,7 @@
 dist/
 .venv/
 .vscode/
-*.spec
+.spec
 __pycache__/
 *.pyc
 vectorstores/

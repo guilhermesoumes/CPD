@@ -71,6 +71,6 @@ Arquivos de imagem das páginas usam diretórios temporários do sistema e são 
 
 Um `threading.Event` global no executor e consultado entre etapas, páginas e perguntas. Não existe cancelamento da requisição HTTP em andamento. Exceções chegam a interface e são exibidas com traceback completo em uma caixa de erro.
 
-## Limites de seguranca e privacidade
+## Limites de segurança e privacidade
 
-O processamento de IA aponta para `127.0.0.1`, portanto o desenho esperado e local. Ainda assim, caminhos e metadados ficam em JSON sem criptografia, respostas podem aparecer no console e não há autenticação efetiva na chave usada com o LM Studio. A distribuição deve preservar as licenças das fontes e dependências.
+O processamento de IA aponta para `127.0.0.1`, portanto o desenho esperado é local. Ainda assim, caminhos e metadados ficam em JSON sem criptografia, respostas podem aparecer no console e não há autenticação efetiva na chave usada com o LM Studio. A distribuição deve preservar as licenças das fontes e dependências.

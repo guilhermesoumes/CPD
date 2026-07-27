@@ -10,15 +10,15 @@ pip install -r requirements.txt
 python app.py
 ```
 
-O código usa imports absolutos a partir da raiz. Execute comandos a partir de `CPDv4/`.
+O código usa imports absolutos a partir da raiz. Execute comandos a partir da pasta raiz do projeto.
 
-## Convencoes atuais
+## Convenções atuais
 
-- nomes e interface em portugues;
+- nomes e interface em português;
 - `pathlib.Path` para caminhos;
 - checks declarativos com `ConfiguracaoVerificacao`;
-- número de página humano, iniciado em 1;
-- código de saída curto e estavel por disciplina;
+- número de página iniciado em 1;
+- código de saída curto e estável por disciplina;
 - cancelamento por `ProcessamentoInterrompido`;
 - recursos empacotados resolvidos por `sys._MEIPASS`.
 
@@ -78,14 +78,21 @@ Casos recomendados para futuros testes unitários:
 - `padronizar_lote` e `proximo_nome_relatorio`;
 - parsing das respostas e cálculo de pontuação;
 - filtragem de OCR e metadados de página;
-- validação da rodovia e persistencia;
+- validação da rodovia;
 - recuperação e classificação visual de ART;
-- isolamento da configuração em código-fonte e PyInstaller;
-- repeticao da mesma verificação para vários PDFs.
+- repetição da mesma verificação para vários PDFs.
 
 ## Empacotamento
 
 Instale o PyInstaller separadamente e execute:
+
+```powershell
+.\.venv\Scripts\pyinstaller.exe --clean --noconfirm CPD-DNIT.spec
+```
+
+Este arquivo descreve como transformar um projeto Python em um executável, incluindo arquivos, bibliotecas, ícone e configurações.
+
+Há também outra opção utilizando diretamente o Pyinstaller, porém esta forma apresentou erros por não importar as bibliotecas 'chromadb.api.rust', 'chromadb_rust_bindings' e 'chromadb.telemetry.product.posthog' no arquivo executável, necessárias para o correto funcionamento do programa:
 
 ```powershell
 pyinstaller --onefile --noconsole app.py `
@@ -97,20 +104,8 @@ pyinstaller --onefile --noconsole app.py `
   --add-data "templates;templates"
 ```
 
-.\.venv\Scripts\pyinstaller.exe --clean --noconfirm CPD-DNIT.spec
-
 Valide o executável em uma máquina limpa. O pacote não inclui LM Studio nem os modelos. Configuração e histórico permanecem no diretório de dados do usuário.
 
 ## Dependências
 
 `requirements.txt` registra as bibliotecas importadas diretamente. Valide mudancas sempre em um ambiente limpo, sem depender de pacotes transitivos.
-
-## Entrega
-
-Antes de publicar:
-
-1. resolva ou aceite formalmente os itens de alta prioridade da revisão técnica;
-2. atualize `CHANGELOG.md`;
-3. execute as validações e o roteiro manual;
-4. confirme licença, política de dados e licenças de terceiros;
-5. teste os modelos e identificadores na versão alvo do LM Studio.
