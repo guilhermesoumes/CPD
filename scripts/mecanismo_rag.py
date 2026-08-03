@@ -142,6 +142,7 @@ def responder_perguntas(
         openai_api_base=URL_API_OPENAI,
         openai_api_key=CHAVE_API,
         temperature=0,
+        max_tokens=20000
     )
     cadeia = instrucoes | modelo_linguagem | StrOutputParser()
 

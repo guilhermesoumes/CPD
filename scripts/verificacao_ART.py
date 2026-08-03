@@ -178,6 +178,8 @@ def verificar_imagem_art(
             },
         ],
         temperature=0,
+        max_tokens=15000
+
     )
 
     conteudo = resposta.choices[0].message.content
