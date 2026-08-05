@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-import shutil
+import uuid
 from pathlib import Path
 from threading import Event
 from typing import Any
@@ -92,8 +92,14 @@ def construir_recuperador(
         if raiz_persistencia is not None
         else fc.caminho_vectorstores_usuario()
     )
-    diretorio_persistencia = raiz_vectorstores / _normalizar_nome_vectorstore(caminho_pdf)
-    shutil.rmtree(diretorio_persistencia, ignore_errors=True)
+    # O Chroma mantem clientes persistentes em cache por caminho durante toda a
+    # vida do processo. Reutilizar o mesmo caminho depois de apagar sua pasta faz
+    # o cliente antigo apontar para um SQLite sem as tabelas de sistema (por
+    # exemplo, ``tenants``). Um diretorio exclusivo evita reutilizar esse cliente
+    # em uma nova analise executada sem reiniciar a aplicacao.
+    diretorio_persistencia = raiz_vectorstores / (
+        f"{_normalizar_nome_vectorstore(caminho_pdf)}-{uuid.uuid4().hex}"
+    )
     diretorio_persistencia.mkdir(parents=True, exist_ok=True)
 
     # cria os chunks
