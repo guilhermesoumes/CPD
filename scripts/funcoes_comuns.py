@@ -55,10 +55,6 @@ def caminho_configuracao_usuario() -> Path:
     pasta_aplicacao = pasta_dados_usuario()
 
     caminho_config = pasta_aplicacao / "config.json"
-
-    print("USUÁRIO ATUAL:", Path.home())
-    print("PASTA DA APLICAÇÃO:", pasta_aplicacao)
-    print("ARQUIVO DE CONFIGURAÇÃO:", caminho_config)
     
     return caminho_config
 

@@ -359,8 +359,6 @@ def verificar_art(
             modelo=MODELO_ART,
             cancelamento_evento=cancelamento_evento,
         )
-        print("Resultados da análise das páginas:")
-        print(paginas_art)
     finally:
         try:
             fc.descarregar_modelo(MODELO_ART)
