@@ -254,7 +254,7 @@ def gerar_relatorio_pdf(
 
     fonte_regular, fonte_negrito = _registrar_fontes()
     estilos = getSampleStyleSheet()
-    estilos.add(ParagraphStyle("TitleCenter", fontName=fonte_negrito, fontSize=20, leading=24, alignment=TA_CENTER, textColor=colors.HexColor("#1d3557")))
+    estilos.add(ParagraphStyle("TitleCenter", fontName=fonte_negrito, fontSize=20, leading=24, alignment=TA_CENTER, textColor=colors.HexColor("#01356f")))
     estilos.add(ParagraphStyle("SubtitleCenter", fontName=fonte_regular, fontSize=10, leading=13, alignment=TA_CENTER, textColor=colors.HexColor("#3d4b59")))
     estilos.add(ParagraphStyle("Section", fontName=fonte_negrito, fontSize=12, leading=15, spaceBefore=14, spaceAfter=8, textColor=colors.HexColor("#1d3557")))
     estilos.add(ParagraphStyle("BodySmall", fontName=fonte_regular, fontSize=8.5, leading=11, alignment=TA_LEFT))

@@ -178,7 +178,7 @@ class AplicacaoPrincipal(ctk.CTk):
         super().__init__()
 
         self.tema_atual = "light"
-        self.geometry("1000x680")
+        self.geometry("1000x700")
         self.title("CPD-DNIT")
         self.resizable(True, True)
         self.processando = False
@@ -571,10 +571,12 @@ class AplicacaoPrincipal(ctk.CTk):
             self.tema_atual = "dark"
             self.botao_tema.configure(text="☀️ Modo Claro")
 
+
         else:
             ctk.set_appearance_mode("light")
             self.tema_atual = "light"
             self.botao_tema.configure(text="🌙 Modo Escuro")
+
 
     # =========================================================
     # LADO SUPERIOR
@@ -587,8 +589,20 @@ class AplicacaoPrincipal(ctk.CTk):
         # TÍTULO
         # =====================================================
         
-        titulo = ctk.CTkLabel(self.quadro_superior, text="CPD-DNIT", font=("Arial", 40, "bold"), text_color=COR_TITULO)
-        titulo.pack(pady=(20, 15))
+        #titulo = ctk.CTkLabel(self.quadro_superior, text="CPD-DNIT", font=("Arial", 40, "bold"), text_color=COR_TITULO)
+        #titulo.pack(pady=(20, 15))
+
+        logo_light = caminho_arquivo(Path("figs") / "logo_light.png")
+        logo_dark = caminho_arquivo(Path("figs") / "logo_dark.png")
+        
+        imagem = ctk.CTkImage(
+            light_image=Image.open(caminho_arquivo(logo_light)),
+            dark_image=Image.open(caminho_arquivo(logo_dark)),
+            size=(284, 70)
+        )
+        logo_cabecalho = ctk.CTkLabel(self,image=imagem,text="")
+        logo_cabecalho.pack()
+
 
     # =========================================================
     # LADO ESQUERDO

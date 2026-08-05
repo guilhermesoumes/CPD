@@ -34,7 +34,7 @@ class ConfiguracaoVerificacao:
 
 
 PERGUNTA_ART: PerguntaVerificacao = {
-    "pergunta": "O documento apresenta Anotacao de Responsabilidade Tecnica (ART)?",
+    "pergunta": "O documento apresenta Anotação de Responsabilidade Técnica (ART)?",
     "informacao_adicional": "",
 }
 
