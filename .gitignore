@@ -1,5 +1,4 @@
 ﻿build/
-dist/
 .venv/
 .vscode/
 .spec
